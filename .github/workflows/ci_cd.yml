@@ -1,0 +1,38 @@
+name: CI/CD
+
+on:
+  # Push on main excluding tags
+  push:
+    branches:
+      - 'main'
+    tags-ignore:
+      - '*.*'
+
+jobs:
+
+  build:
+    name: CI/CD
+    runs-on: macos-latest
+
+    steps:
+
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@85880fa0301c86cca9da44039ee3bb12d3bedbfa # 0.12.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Swift Package Manager cache
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build and test
+        run: |
+          xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
+          -destination 'platform=iOS Simulator,name=iPhone 16' -scheme ORLib

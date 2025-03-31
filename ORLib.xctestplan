@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "B1089232-CFC3-4AAE-AA9B-FF194DED9E61",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:ORLib.xcodeproj",
+        "identifier" : "91A9A8EF28BF6A3300DF8928",
+        "name" : "Tests"
+      }
+    }
+  ],
+  "version" : 1
+}
