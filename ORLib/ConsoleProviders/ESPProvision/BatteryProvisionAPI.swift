@@ -19,8 +19,13 @@
  */
 
 import Foundation
+import os
 
 struct BatteryProvisionAPIREST: BatteryProvisionAPI {
+    private static let logger = Logger(
+           subsystem: Bundle.main.bundleIdentifier!,
+           category: String(describing: ESPProvisionProvider.self)
+       )
 
     init(apiURL: URL) {
         self.apiURL = apiURL
@@ -49,15 +54,21 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         do {
             request.httpBody = try JSONEncoder().encode(ProvisionRequestBody(deviceId: deviceId, password: password))
-            print("Request body \(String(data: request.httpBody!, encoding: .utf8) ?? "nil")")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                print("Not an HTTP response ?!?")
-                return "ERROR"
+                Self.logger.error("Received a non HTTP response")
+                throw BatteryProvisionAPIError.communicationError("Invalid response format")
             }
             guard (200...299).contains(response.statusCode) else {
-                print ("server error, status code \(response.statusCode)")
-                return "ERROR" // TODO throw
+                Self.logger.info("HTTP call error, status code \(response.statusCode)")
+                switch response.statusCode {
+                case 401:
+                    throw BatteryProvisionAPIError.unauthorized
+                case 409:
+                    throw BatteryProvisionAPIError.businessError
+                default:
+                    throw BatteryProvisionAPIError.unknownError
+                }
             }
             if let mimeType = response.mimeType,
                mimeType == "application/json",
@@ -68,9 +79,9 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
             }
         } catch {
             print(error.localizedDescription)
-            return "ERROR" // TODO throw
+            throw BatteryProvisionAPIError.genericError(error)
         }
-        return "ERROR" // TODO how can I get here ?
+        throw BatteryProvisionAPIError.unknownError
     }
 
     struct ProvisionRequestBody: Encodable {
@@ -81,4 +92,12 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
     struct ProvisionResponseBody: Decodable {
         var assetId: String
     }
+}
+
+enum BatteryProvisionAPIError: Error {
+    case unauthorized
+    case communicationError(String)
+    case businessError
+    case genericError(Error)
+    case unknownError
 }

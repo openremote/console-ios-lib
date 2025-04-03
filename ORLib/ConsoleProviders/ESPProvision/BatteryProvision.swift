@@ -80,8 +80,24 @@ class BatteryProvision {
             sendProvisionDeviceStatus(connected: false, error: error.errorCode, errorMessage: error.errorMessage)
         } catch let error as RandomPasswordGeneratorError {
             sendProvisionDeviceStatus(connected: false, error: .genericError, errorMessage: error.localizedDescription)
+        } catch let error as BatteryProvisionAPIError {
+            let (errorCode, errorMessage) = mapBatteryProvisionAPIError(error)
+            sendProvisionDeviceStatus(connected: false, error: errorCode, errorMessage: errorMessage)
         } catch {
             sendProvisionDeviceStatus(connected: false, error: .genericError, errorMessage: error.localizedDescription)
+        }
+    }
+
+    private func mapBatteryProvisionAPIError(_ error: BatteryProvisionAPIError) -> (ESPProviderErrorCode, String?) {
+        switch error {
+        case .businessError, .unknownError:
+            return (ESPProviderErrorCode.genericError, nil)
+        case .genericError(let error):
+            return (ESPProviderErrorCode.genericError, error.localizedDescription)
+        case .unauthorized:
+            return (ESPProviderErrorCode.securityError, nil)
+        case .communicationError(let errorMessage):
+            return (ESPProviderErrorCode.communicationError, errorMessage)
         }
     }
 
