@@ -389,6 +389,8 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                 switch(action) {
                                 case Actions.providerInit:
                                     if let baseUrl, let appUrl = URL(string: baseUrl),
+
+                                        // TODO: should use realm, not always master
                                        let apiUrl = URL(string: "\(appUrl.scheme ?? "https")://\(appUrl.host ?? "localhost")\(appUrl.port != nil ? ":\(appUrl.port!)" : "")/api/master") {
                                         espProvisionProvider = ESPProvisionProvider(apiURL: apiUrl)
                                     } else {

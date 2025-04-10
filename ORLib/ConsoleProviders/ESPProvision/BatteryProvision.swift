@@ -73,6 +73,9 @@ class BatteryProvision {
                 }
                 status = try await deviceConnection!.getBackendConnectionStatus()
             }
+
+            // TODO: review, if we're out of the loop, this is always true
+
             if status == .connected {
                 sendProvisionDeviceStatus(connected: true)
             }
