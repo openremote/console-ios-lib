@@ -20,12 +20,12 @@ public enum ConfigManagerError: Error {
     case couldNotLoadAppConfig
 }
 
-public typealias ApiManagerFactory = (String) -> ApiManager
+public typealias ApiManagerFactory = (String) throws -> ApiManager
 
 
 public class ConfigManager {
     
-    private var apiManagerFactory: ((String) -> ApiManager)
+    private var apiManagerFactory: ApiManagerFactory
     private var apiManager: ApiManager?
     
     public private(set) var globalAppInfos : [String:ORAppInfo] = [:] // app infos from the top level consoleConfig information
@@ -43,8 +43,8 @@ public class ConfigManager {
             let baseUrl = domain.buildBaseUrlFromDomain()
             let url = baseUrl.appending("/api/master")
 
-            apiManager = apiManagerFactory(url)
-            
+            apiManager = try apiManagerFactory(url)
+
             guard let api = apiManager else {
                 throw ConfigManagerError.communicationError
             }

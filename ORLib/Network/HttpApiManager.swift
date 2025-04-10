@@ -20,8 +20,11 @@ public class HttpApiManager: NSObject, ApiManager {
 
     private let baseUrl: URL;
 
-    public init(baseUrl: String) {
-        self.baseUrl = URL(string: baseUrl)!
+    public init(baseUrl: String) throws {
+        guard let url = URL(string: baseUrl) else {
+            throw ApiManagerError.invalidUrl
+        }
+        self.baseUrl = url
         super.init()
     }
 
