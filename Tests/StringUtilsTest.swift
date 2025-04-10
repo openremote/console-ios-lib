@@ -28,6 +28,10 @@ struct StringUtilsTest {
         #expect("https://www.example.com".buildBaseUrlFromDomain() == "https://www.example.com")
     }
 
+    @Test func fqdnWithNonWebScheme() async throws {
+        #expect("ftp://www.example.com".buildBaseUrlFromDomain() == "ftp://www.example.com")
+    }
+
     @Test func fqdnNoScheme() async throws {
         #expect("www.example.com".buildBaseUrlFromDomain() == "https://www.example.com")
     }
@@ -35,6 +39,10 @@ struct StringUtilsTest {
     @Test func fqdnAndPortWithScheme() async throws {
         #expect("http://www.example.com:8080".buildBaseUrlFromDomain() == "http://www.example.com:8080")
         #expect("https://www.example.com:443".buildBaseUrlFromDomain() == "https://www.example.com:443")
+    }
+
+    @Test func fqdnAndPortWithNonWebScheme() async throws {
+        #expect("ftp://www.example.com:21".buildBaseUrlFromDomain() == "ftp://www.example.com:21")
     }
 
     @Test func fqdnAndPortNoScheme() async throws {
@@ -49,8 +57,20 @@ struct StringUtilsTest {
         #expect("http://192.168.1.1".buildBaseUrlFromDomain() == "http://192.168.1.1")
     }
 
+    @Test func ipAddressWithNonWebScheme () async throws {
+        #expect("ftp://192.168.1.1".buildBaseUrlFromDomain() == "ftp://192.168.1.1")
+    }
+
     @Test func ipAddressAndPortWithScheme () async throws {
         #expect("http://192.168.1.1:8080".buildBaseUrlFromDomain() == "http://192.168.1.1:8080")
+    }
+
+    @Test func ipAddressAndPortWithNonWebScheme () async throws {
+        #expect("ftp://192.168.1.1:25".buildBaseUrlFromDomain() == "ftp://192.168.1.1:25")
+    }
+
+    @Test func ipAddressAndInvalidPortWithScheme () async throws {
+        #expect("http://192.168.1.1:InvalidPort".buildBaseUrlFromDomain() == "http://192.168.1.1:InvalidPort")
     }
 
     @Test func ipAddressNoScheme () async throws {
@@ -94,4 +114,5 @@ struct StringUtilsTest {
     @Test func ipv6CompressedAddressAndPortNoScheme () async throws {
         #expect("[2001:db8:85a3::8a2e:370:7334]:8080".buildBaseUrlFromDomain() == "https://[2001:db8:85a3::8a2e:370:7334]:8080")
     }
+
 }

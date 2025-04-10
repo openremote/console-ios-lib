@@ -30,6 +30,8 @@ extension String {
         return encodedString
     }
 
+    /// There is no validation that the generated string represents a valid URL.
+    /// For instance, no validation is performed on the port if one is provided.
     func buildBaseUrlFromDomain() -> String {
         do {
             let pattern = "^(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6}))$"
@@ -42,7 +44,15 @@ extension String {
             print("Error creating NSRegularExpression: \(error)")
         }
 
-        if self.starts(with: "https://") || self.starts(with: "http://") {
+        let numberOfMatches: Int
+        do {
+            let schemePrefix = try NSRegularExpression(pattern: "^[a-zA-Z]+://.*$")
+            numberOfMatches = schemePrefix.numberOfMatches(in: self, options: [], range: NSRange(location: 0, length: self.utf16.count))
+        } catch let error as NSError {
+            numberOfMatches = 0
+            print("Error creating NSRegularExpression: \(error)")
+        }
+        if numberOfMatches == 1 {
             if self.firstIndex(of: ".") != nil || self.firstIndex(of: "[") != nil {
                 return self
             } else {
