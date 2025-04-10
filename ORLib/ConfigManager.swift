@@ -40,7 +40,7 @@ public class ConfigManager {
     public func setDomain(domain: String) async throws -> ConfigManagerState  {
         switch state {
         case .selectDomain:
-            let baseUrl = domain.isValidURL ? domain : "https://\(domain).openremote.app"
+            let baseUrl = domain.buildBaseUrlFromDomain()
             let url = baseUrl.appending("/api/master")
 
             apiManager = apiManagerFactory(url)
@@ -124,7 +124,7 @@ public class ConfigManager {
         }
         
     }
-    
+
     private func filterPotentialApps(apiManager: ApiManager, potentialApps: [String]?) async -> [String]? {
         var filteredApps : [String]?
         if let appNames = potentialApps {

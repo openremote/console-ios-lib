@@ -43,6 +43,8 @@
 		4CFEC51C2C919AF300DCC936 /* ORLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CBDF2AA2AE285E400C7D94C /* ORLib.framework */; };
 		4CFEC51D2C919AF300DCC936 /* ORLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4CBDF2AA2AE285E400C7D94C /* ORLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		914F7D4429215D3500655A22 /* test12.json in Resources */ = {isa = PBXBuildFile; fileRef = 914F7D4329215D3500655A22 /* test12.json */; };
+		9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */; };
+		9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E2A12D9EB3220055E565 /* URLTest.swift */; };
 		9156512A28FC6D6700062E16 /* test9.json in Resources */ = {isa = PBXBuildFile; fileRef = 9156512928FC6D6700062E16 /* test9.json */; };
 		91932F9328C66A3C00BABBA3 /* test1.json in Resources */ = {isa = PBXBuildFile; fileRef = 91932F9228C66A3C00BABBA3 /* test1.json */; };
 		91932F9628C6715C00BABBA3 /* test2.json in Resources */ = {isa = PBXBuildFile; fileRef = 91932F9528C6715C00BABBA3 /* test2.json */; };
@@ -116,6 +118,8 @@
 		4CF5D06727143F1F00D705BE /* ORNotificationResource.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ORNotificationResource.swift; sourceTree = "<group>"; };
 		4CF5D06827143F1F00D705BE /* HttpApiManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpApiManager.swift; sourceTree = "<group>"; };
 		914F7D4329215D3500655A22 /* test12.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test12.json; sourceTree = "<group>"; };
+		9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringUtilsTest.swift; sourceTree = "<group>"; };
+		9154E2A12D9EB3220055E565 /* URLTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTest.swift; sourceTree = "<group>"; };
 		9156512928FC6D6700062E16 /* test9.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test9.json; sourceTree = "<group>"; };
 		91658F9028897E55000FF05C /* ORConsoleConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConsoleConfig.swift; sourceTree = "<group>"; };
 		91658F9228897EDD000FF05C /* ORAppInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORAppInfo.swift; sourceTree = "<group>"; };
@@ -296,6 +300,8 @@
 				91A9A8FA28BF6A4900DF8928 /* ConfigManagerTest.swift */,
 				91A9A90028BF6EA000DF8928 /* FileApiManager.swift */,
 				91AA79F228D628E9005B9913 /* Fixture.swift */,
+				9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
+				9154E2A12D9EB3220055E565 /* URLTest.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -463,6 +469,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */,
+				9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */,
+				9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */,
 				91A9A8FB28BF6A4900DF8928 /* ConfigManagerTest.swift in Sources */,
 				91AA79F328D628E9005B9913 /* Fixture.swift in Sources */,
 			);
