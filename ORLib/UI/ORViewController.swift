@@ -414,6 +414,14 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                 case Actions.connectToBleDevice:
                                     if let deviceId = postMessageDict["id"] as? String {
                                         espProvisionProvider?.connectTo(deviceId: deviceId, pop: postMessageDict["pop"] as? String)
+                                    } else {
+                                        let payload: [String: Any] = [
+                                            DefaultsKey.providerKey: provider,
+                                            DefaultsKey.actionKey: action,
+                                            "errorCode": ESPProviderErrorCode.unknownDevice.rawValue,
+                                            "errorMessage": "Missing id parameter"
+                                        ]
+                                        self.sendData(data: payload)
                                     }
                                 case Actions.disconnectFromBleDevice:
                                     espProvisionProvider?.disconnectFromDevice()
@@ -425,6 +433,14 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     if let ssid = postMessageDict["ssid"] as? String,
                                        let password = postMessageDict["password"] as? String {
                                         espProvisionProvider?.sendWifiConfiguration(ssid: ssid, password: password)
+                                    } else {
+                                        let payload: [String: Any] = [
+                                            DefaultsKey.providerKey: provider,
+                                            DefaultsKey.actionKey: action,
+                                            "errorCode": ESPProviderErrorCode.wifiAuthenticationError.rawValue,
+                                            "errorMessage": "Missing ssid or password parameter"
+                                        ]
+                                        self.sendData(data: payload)
                                     }
                                 case Actions.exitProvisioning:
                                     espProvisionProvider?.exitProvisioning()
@@ -432,11 +448,11 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     if let userToken = postMessageDict["userToken"] as? String {
                                         espProvisionProvider?.provisionDevice(userToken: userToken)
                                     } else {
-                                        var payload: [String: Any] = [
+                                        let payload: [String: Any] = [
                                             DefaultsKey.providerKey: provider,
                                             DefaultsKey.actionKey: action,
                                             "errorCode": ESPProviderErrorCode.securityError.rawValue,
-                                            "errorMessage": "Missing userToken"
+                                            "errorMessage": "Missing userToken parameter"
                                         ]
                                         self.sendData(data: payload)
                                     }
