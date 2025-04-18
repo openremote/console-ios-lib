@@ -12,7 +12,7 @@ jobs:
 
   build:
     name: Release
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
 

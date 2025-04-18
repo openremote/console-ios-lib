@@ -12,7 +12,7 @@ jobs:
 
   build:
     name: CI/CD
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
 
