@@ -84,6 +84,9 @@ open class ORViewcontroller : UIViewController {
             options: []) {
             if let theJSONText = String(data: theJSONData,
                                         encoding: .utf8) {
+
+                print("Sending to webapp \(theJSONText)")
+
                 let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText)')"
                 DispatchQueue.main.async {
                     self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (any, error) in
@@ -229,6 +232,7 @@ open class ORViewcontroller : UIViewController {
 extension ORViewcontroller: WKScriptMessageHandler {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let jsonDictionnary = message.body as? [String : Any]
+        print("Received from WebApp \(jsonDictionnary ?? [:])")
         if let type = jsonDictionnary?["type"] as? String {
             switch (type) {
             case "provider":

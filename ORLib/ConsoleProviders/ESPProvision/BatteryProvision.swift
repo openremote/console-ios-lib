@@ -54,6 +54,7 @@ class BatteryProvision {
 
         do {
             let deviceInfo = try await deviceConnection!.getDeviceInfo()
+            Self.logger.info("Device ID retrieved from firmware: \(deviceInfo.deviceId)")
 
             let password = try generatePassword()
 
@@ -71,6 +72,7 @@ class BatteryProvision {
                     return
                 }
                 status = try await deviceConnection!.getBackendConnectionStatus()
+                Self.logger.info("ModuleOne reported connection status \(String(describing: status))")
             }
 
             // TODO: review, if we're out of the loop, this is always true

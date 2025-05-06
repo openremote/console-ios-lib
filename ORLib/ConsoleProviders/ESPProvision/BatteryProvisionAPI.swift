@@ -72,9 +72,9 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
             if let mimeType = response.mimeType,
                mimeType == "application/json",
                let dataString = String(data: data, encoding: .utf8) {
-                print ("got data: \(dataString)")
                 let assetId = try JSONDecoder().decode(ProvisionResponseBody.self, from: data).assetId
                 return assetId
+                Self.logger.info("Received JSON response from server \(dataString)")
             }
         } catch {
             print(error.localizedDescription)
