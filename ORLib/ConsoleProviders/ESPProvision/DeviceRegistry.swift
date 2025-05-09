@@ -109,10 +109,12 @@ class DeviceRegistry {
     }
 
     public func startDevicesScan(prefix: String? = nil) {
-        bleScanning = true
         resetDevicesList()
         loopDetector.reset()
-        devicesScan(prefix: prefix ?? "")
+        if !bleScanning {
+            bleScanning = true
+            devicesScan(prefix: prefix ?? "")
+        }
     }
 
     public func stopDevicesScan(sendMessage: Bool = true) {

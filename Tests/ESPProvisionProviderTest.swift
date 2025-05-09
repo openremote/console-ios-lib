@@ -339,6 +339,80 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
     }
 
+    @Test func multipleSearchDevices() async throws {
+        let espProvisionMock = ESPORProvisionManagerMock()
+        espProvisionMock.scanDevicesDuration = 0.05
+
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        _ = provider.initialize()
+        _ = provider.enable()
+        provider.setProvisionManager(espProvisionMock)
+
+        var receivedData: [String:Any] = [:]
+        var receivedCallbackCount = 0
+
+        await withCheckedContinuation { continuation in
+            var continuationCalled = false
+            provider.sendDataCallback = { data in
+                receivedData = data
+                receivedCallbackCount += 1
+                if !continuationCalled {
+                    continuationCalled = true
+                    continuation.resume()
+                }
+            }
+
+            provider.startDevicesScan()
+        }
+
+        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+
+        #expect(espProvisionMock.searchESPDevicesCallCount >= 1)
+        #expect(receivedCallbackCount == 1)
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.startBleScan)
+
+        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        var devices = receivedData["devices"] as! [[String:Any]]
+        #expect(devices.count == 1)
+        var device = devices.first!
+        #expect(device["name"] as? String == "TestDevice")
+        #expect(device["id"] != nil)
+
+        // Calling it a second time while the first is still on-going
+        receivedData = [:]
+        receivedCallbackCount = 0
+        await withCheckedContinuation { continuation in
+            var continuationCalled = false
+            provider.sendDataCallback = { data in
+                receivedData = data
+                receivedCallbackCount += 1
+                if !continuationCalled {
+                    continuationCalled = true
+                    continuation.resume()
+                }
+            }
+
+            provider.startDevicesScan()
+        }
+
+        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+
+        #expect(espProvisionMock.searchESPDevicesCallCount >= 2)
+        #expect(receivedCallbackCount == 1)
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.startBleScan)
+
+        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        devices = receivedData["devices"] as! [[String:Any]]
+        #expect(devices.count == 1)
+        device = devices.first!
+        #expect(device["name"] as? String == "TestDevice")
+        #expect(device["id"] != nil)
+    }
+
     // MARK: Device connection
 
     @Test func connectToDevice() async throws {
@@ -1193,7 +1267,7 @@ struct ESPProvisionProviderTest {
     }
 
     private func connectToDevice(provider: ESPProvisionProvider, deviceId: String) async throws {
-        var receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
+        let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
             provider.connectTo(deviceId: deviceId)
         }
 
