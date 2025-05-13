@@ -160,6 +160,7 @@ class ESPProvisionProvider: NSObject {
         }
         do {
             try deviceConnection!.exitProvisioning()
+            callbackChannel?.sendMessage(action: Actions.exitProvisioning, data: ["exit": true])
         } catch let error as ESPProviderError {
             sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
         } catch {
@@ -168,7 +169,7 @@ class ESPProvisionProvider: NSObject {
     }
 
     private func sendExitProvisioningError(_ error: ESPProviderErrorCode, errorMessage: String?) {
-        var data: [String: Any] = ["errorCode": error.rawValue]
+        var data: [String: Any] = ["exit": false, "errorCode": error.rawValue]
         if let errorMessage {
             data["errorMessage"] = errorMessage
         }

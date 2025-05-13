@@ -1224,6 +1224,45 @@ struct ESPProvisionProviderTest {
 
     // MARK: Exit provisioning
 
+    @Test func exitProvisioningSuccess() async throws {
+        let espProvisionMock = ESPORProvisionManagerMock()
+        let mockDevice = ORESPDeviceMock()
+
+        espProvisionMock.mockDevices = [mockDevice]
+
+        let batteryProvisionAPIMock = BatteryProvisionAPIMock()
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
+                                            searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
+                                            batteryProvisionAPI: batteryProvisionAPIMock)
+        _ = provider.initialize()
+        _ = provider.enable()
+        provider.setProvisionManager(espProvisionMock)
+
+        let device = await getDevice(provider: provider)
+
+        try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
+
+        var receivedData: [String:Any] = [:]
+        var receivedCallbackCount = 0
+
+        await withCheckedContinuation { continuation in
+            var continuationCalled = false
+            provider.sendDataCallback = { data in
+                receivedData = data
+                receivedCallbackCount += 1
+                if !continuationCalled {
+                    continuationCalled = true
+                    continuation.resume()
+                }
+            }
+            provider.exitProvisioning()
+        }
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.exitProvisioning)
+        #expect(receivedData["exit"] as? Bool == true)
+    }
+
     @Test func exitProvisioningNotConnected() async throws {
         let espProvisionMock = ESPORProvisionManagerMock()
 
@@ -1242,6 +1281,7 @@ struct ESPProvisionProviderTest {
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.exitProvisioning)
+        #expect(receivedData["exit"] as? Bool == false)
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.notConnected.rawValue)
     }
 
