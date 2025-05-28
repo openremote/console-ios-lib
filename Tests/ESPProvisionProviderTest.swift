@@ -996,7 +996,6 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword != nil)
             #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 
@@ -1082,7 +1081,6 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword != nil)
             #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 
@@ -1169,7 +1167,6 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword != nil)
             #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 

@@ -65,7 +65,7 @@ class BatteryProvision {
 
             var status = BackendConnectionStatus.connecting
             // TODO: what about other status values ? Is status connecting while it connects ? or disconnected ? -> test with real device
-            var startTime = Date.now
+            let startTime = Date.now
             while (status != .connected) {
                 if Date.now.timeIntervalSince(startTime) > backendConnectionTimeout {
                     sendProvisionDeviceStatus(connected: false, error: .timeoutError, errorMessage: "Timeout waiting for backend to get connected")
