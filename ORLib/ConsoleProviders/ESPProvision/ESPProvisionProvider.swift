@@ -152,13 +152,15 @@ class ESPProvisionProvider: NSObject {
             sendExitProvisioningError(.notConnected, errorMessage: "No connection established to device")
             return
         }
-        do {
-            try deviceConnection!.exitProvisioning()
-            callbackChannel?.sendMessage(action: Actions.exitProvisioning, data: ["exit": true])
-        } catch let error as ESPProviderError {
-            sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
-        } catch {
-            sendExitProvisioningError(.genericError, errorMessage: error.localizedDescription)
+        Task {
+            do {
+                try await deviceConnection!.exitProvisioning()
+                callbackChannel?.sendMessage(action: Actions.exitProvisioning, data: ["exit": true])
+            } catch let error as ESPProviderError {
+                sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
+            } catch {
+                sendExitProvisioningError(.genericError, errorMessage: error.localizedDescription)
+            }
         }
     }
 
