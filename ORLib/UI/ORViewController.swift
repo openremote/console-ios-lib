@@ -404,9 +404,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     }
                                     self.sendData(data: espProvisionProvider!.initialize())
                                 case Actions.providerEnable:
-                                    if let enableData = espProvisionProvider?.enable() {
-                                        sendData(data: enableData)
-                                    }
+                                    espProvisionProvider?.enable()
                                 case Actions.providerDisable:
                                     if let disableData = espProvisionProvider?.disable() {
                                         sendData(data: disableData)

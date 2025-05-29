@@ -57,6 +57,7 @@
 		91AA79F328D628E9005B9913 /* Fixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91AA79F228D628E9005B9913 /* Fixture.swift */; };
 		91D2D11828E973BF0030E2FB /* test7.json in Resources */ = {isa = PBXBuildFile; fileRef = 91D2D11728E973BF0030E2FB /* test7.json */; };
 		91D2D11A28E988B10030E2FB /* test8.json in Resources */ = {isa = PBXBuildFile; fileRef = 91D2D11928E988B10030E2FB /* test8.json */; };
+		91DD55A12DE7306100957233 /* BLEPermissionsChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */; };
 		91DD9FEE29102A5800912F79 /* test10.json in Resources */ = {isa = PBXBuildFile; fileRef = 91DD9FED2910280900912F79 /* test10.json */; };
 		91DD9FF029102A8B00912F79 /* test11.json in Resources */ = {isa = PBXBuildFile; fileRef = 91DD9FEF29102A8B00912F79 /* test11.json */; };
 		91DF424E299FA79600DFF85E /* test13.json in Resources */ = {isa = PBXBuildFile; fileRef = 91DF424D299FA79600DFF85E /* test13.json */; };
@@ -157,6 +158,7 @@
 		91C0BE8A2D9AED9F00ED3492 /* ORLib.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = ORLib.xctestplan; sourceTree = "<group>"; };
 		91D2D11728E973BF0030E2FB /* test7.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = test7.json; sourceTree = "<group>"; };
 		91D2D11928E988B10030E2FB /* test8.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = test8.json; sourceTree = "<group>"; };
+		91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPermissionsChecker.swift; sourceTree = "<group>"; };
 		91DD9FED2910280900912F79 /* test10.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test10.json; sourceTree = "<group>"; };
 		91DD9FEF29102A8B00912F79 /* test11.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test11.json; sourceTree = "<group>"; };
 		91DF424D299FA79600DFF85E /* test13.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = test13.json; sourceTree = "<group>"; };
@@ -360,6 +362,7 @@
 				91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */,
 				91F216572D887BCF008F9CA7 /* ORESPDevice.swift */,
 				91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */,
+				91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */,
 			);
 			path = ESPProvision;
 			sourceTree = "<group>";
@@ -513,6 +516,7 @@
 				91F2165B2D887BCF008F9CA7 /* BatteryProvision.swift in Sources */,
 				91F2165C2D887BCF008F9CA7 /* ORConfigChannel.swift in Sources */,
 				91F2165D2D887BCF008F9CA7 /* BatteryProvisionAPI.swift in Sources */,
+				91DD55A12DE7306100957233 /* BLEPermissionsChecker.swift in Sources */,
 				91F2165E2D887BCF008F9CA7 /* DeviceRegistry.swift in Sources */,
 				91F2165F2D887BCF008F9CA7 /* ORESPDevice.swift in Sources */,
 				91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */,
