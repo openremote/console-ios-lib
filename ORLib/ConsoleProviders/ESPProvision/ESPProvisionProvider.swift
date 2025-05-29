@@ -49,7 +49,7 @@ class ESPProvisionProvider: NSObject {
     private var apiURL = URL(string: "http://localhost:8080/api/master")!
 
 
-    private var manager: CBCentralManager?
+    private var blePermissionsChecker: BLEPermissionsChecker?
 
     typealias BatteryProvisionFactory = () -> BatteryProvision
     private lazy var batteryProvisionFactory: BatteryProvisionFactory = {
@@ -94,25 +94,19 @@ class ESPProvisionProvider: NSObject {
         ]
     }
 
-    public func enable() -> [String: Any] {
+    public func enable() {
         deviceRegistry.enable()
+        blePermissionsChecker = BLEPermissionsChecker(callbackChannel: callbackChannel)
+        Task {
+            let permission = await blePermissionsChecker?.checkPermissions()
+            userdefaults?.removeObject(forKey: ESPProvisionProvider.espProvisionDisabledKey)
+            userdefaults?.synchronize()
 
-        // This will trigger the iOS pop-up to provide authorization to use BLE
-        // This is required otherwise permissionKey returned to the web app is always false
-        manager = CBCentralManager()
-        manager?.scanForPeripherals(withServices: [CBUUID(string: "0x180F")])
-        manager?.stopScan()
-        // Don't set manager to nil here as then it does not request permissions
-
-        userdefaults?.removeObject(forKey: ESPProvisionProvider.espProvisionDisabledKey)
-        userdefaults?.synchronize()
-
-        return [
-            DefaultsKey.actionKey: Actions.providerEnable,
-            DefaultsKey.providerKey: Providers.espprovision,
-            DefaultsKey.hasPermissionKey: CBCentralManager.authorization == .allowedAlways,
-            DefaultsKey.successKey: true
-        ]
+            callbackChannel?.sendMessage(action: Actions.providerEnable, data: [
+                DefaultsKey.hasPermissionKey: permission,
+                DefaultsKey.successKey: true
+            ])
+        }
     }
 
     public func disable() -> [String: Any] {
