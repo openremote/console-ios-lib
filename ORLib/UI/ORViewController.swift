@@ -39,7 +39,10 @@ open class ORViewcontroller : UIViewController {
     public var storageProvider = StorageProvider()
     public var qrProvider: QrScannerProvider?
     public var bleProvider: BleProvider?
-    
+
+    // TODO: do I want to make this public ?
+    var espProvisionProvider: ESPProvisionProvider?
+
     public var baseUrl: String?
     
     public var targetUrl: String?
@@ -81,6 +84,9 @@ open class ORViewcontroller : UIViewController {
             options: []) {
             if let theJSONText = String(data: theJSONData,
                                         encoding: .utf8) {
+
+                print("Sending to webapp \(theJSONText)")
+
                 let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText)')"
                 DispatchQueue.main.async {
                     self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (any, error) in
@@ -226,6 +232,7 @@ open class ORViewcontroller : UIViewController {
 extension ORViewcontroller: WKScriptMessageHandler {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let jsonDictionnary = message.body as? [String : Any]
+        print("Received from WebApp \(jsonDictionnary ?? [:])")
         if let type = jsonDictionnary?["type"] as? String {
             switch (type) {
             case "provider":
@@ -245,7 +252,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     pushProvider?.enable(consoleId: consoleId, callback: { enableData in
                                         self.sendData(data: enableData)
                                     })
-                                    
+
                                 case Actions.providerDisable:
                                     if let disableData = pushProvider?.disable() {
                                         sendData(data: disableData)
@@ -272,7 +279,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                             }
                                         })
                                     }
-                                    
+
                                 case Actions.providerDisable:
                                     if let disableData = geofenceProvider?.disable() {
                                         sendData(data: disableData)
@@ -290,7 +297,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                 case Actions.providerEnable:
                                     let enableData = storageProvider.enable()
                                     sendData(data: enableData)
-                                    
+
                                 case Actions.providerDisable:
                                     let disableData = storageProvider.disable()
                                     sendData(data: disableData)
@@ -377,6 +384,81 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                                 self.sendData(data: sendData)
                                             }
                                         }
+                                    }
+                                default:
+                                    print("Wrong action \(action) for \(provider)")
+                                }
+                            case Providers.espprovision:
+                                switch(action) {
+                                case Actions.providerInit:
+                                    if let baseUrl, let appUrl = URL(string: baseUrl),
+
+                                        // TODO: should use realm, not always master
+                                       let apiUrl = URL(string: "\(appUrl.scheme ?? "https")://\(appUrl.host ?? "localhost")\(appUrl.port != nil ? ":\(appUrl.port!)" : "")/api/master") {
+                                        espProvisionProvider = ESPProvisionProvider(apiURL: apiUrl)
+                                    } else {
+                                        espProvisionProvider = ESPProvisionProvider()
+                                    }
+                                    espProvisionProvider?.sendDataCallback = { [weak self] data in
+                                        self?.sendData(data: data)
+                                    }
+                                    self.sendData(data: espProvisionProvider!.initialize())
+                                case Actions.providerEnable:
+                                    if let enableData = espProvisionProvider?.enable() {
+                                        sendData(data: enableData)
+                                    }
+                                case Actions.providerDisable:
+                                    if let disableData = espProvisionProvider?.disable() {
+                                        sendData(data: disableData)
+                                    }
+                                case Actions.startBleScan:
+                                    espProvisionProvider?.startDevicesScan(prefix: postMessageDict["prefix"] as? String)
+                                case Actions.stopBleScan:
+                                    espProvisionProvider?.stopDevicesScan()
+                                case Actions.connectToBleDevice:
+                                    if let deviceId = postMessageDict["id"] as? String {
+                                        espProvisionProvider?.connectTo(deviceId: deviceId, pop: postMessageDict["pop"] as? String)
+                                    } else {
+                                        let payload: [String: Any] = [
+                                            DefaultsKey.providerKey: provider,
+                                            DefaultsKey.actionKey: action,
+                                            "errorCode": ESPProviderErrorCode.unknownDevice.rawValue,
+                                            "errorMessage": "Missing id parameter"
+                                        ]
+                                        self.sendData(data: payload)
+                                    }
+                                case Actions.disconnectFromBleDevice:
+                                    espProvisionProvider?.disconnectFromDevice()
+                                case Actions.startWifiScan:
+                                    espProvisionProvider?.startWifiScan()
+                                case Actions.stopWifiScan:
+                                    espProvisionProvider?.stopWifiScan()
+                                case Actions.sendWifiConfiguration:
+                                    if let ssid = postMessageDict["ssid"] as? String,
+                                       let password = postMessageDict["password"] as? String {
+                                        espProvisionProvider?.sendWifiConfiguration(ssid: ssid, password: password)
+                                    } else {
+                                        let payload: [String: Any] = [
+                                            DefaultsKey.providerKey: provider,
+                                            DefaultsKey.actionKey: action,
+                                            "errorCode": ESPProviderErrorCode.wifiAuthenticationError.rawValue,
+                                            "errorMessage": "Missing ssid or password parameter"
+                                        ]
+                                        self.sendData(data: payload)
+                                    }
+                                case Actions.exitProvisioning:
+                                    espProvisionProvider?.exitProvisioning()
+                                case Actions.provisionDevice:
+                                    if let userToken = postMessageDict["userToken"] as? String {
+                                        espProvisionProvider?.provisionDevice(userToken: userToken)
+                                    } else {
+                                        let payload: [String: Any] = [
+                                            DefaultsKey.providerKey: provider,
+                                            DefaultsKey.actionKey: action,
+                                            "errorCode": ESPProviderErrorCode.securityError.rawValue,
+                                            "errorMessage": "Missing userToken parameter"
+                                        ]
+                                        self.sendData(data: payload)
                                     }
                                 default:
                                     print("Wrong action \(action) for \(provider)")
