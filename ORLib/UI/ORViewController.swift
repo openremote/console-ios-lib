@@ -18,11 +18,16 @@
  */
 
 import Foundation
+import OSLog
 import UIKit
 import WebKit
 
 open class ORViewcontroller : UIViewController {
-    
+    private static let logger = Logger(
+           subsystem: Bundle.main.bundleIdentifier!,
+           category: String(describing: ORViewcontroller.self)
+       )
+
     lazy var offlineViewController: UIViewController = {
         ViewControllerFactory.createOfflineViewController()
     }()
@@ -84,8 +89,7 @@ open class ORViewcontroller : UIViewController {
             options: []) {
             if let theJSONText = String(data: theJSONData,
                                         encoding: .utf8) {
-
-                print("Sending to webapp \(theJSONText)")
+                Self.logger.info("Sending to webapp \(theJSONText)")
 
                 let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText)')"
                 DispatchQueue.main.async {
@@ -232,7 +236,7 @@ open class ORViewcontroller : UIViewController {
 extension ORViewcontroller: WKScriptMessageHandler {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let jsonDictionnary = message.body as? [String : Any]
-        print("Received from WebApp \(jsonDictionnary ?? [:])")
+        Self.logger.info("Received from WebApp \(jsonDictionnary ?? [:])")
         if let type = jsonDictionnary?["type"] as? String {
             switch (type) {
             case "provider":
