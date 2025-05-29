@@ -122,16 +122,14 @@ class DeviceConnection {
         bleStatus == .connected && device != nil && configChannel != nil
     }
 
-    func exitProvisioning() throws {
+    func exitProvisioning() async throws {
         if !isConnected {
             throw ESPProviderError(errorCode: .notConnected, errorMessage: "No connection established to device")
         }
-        Task {
-            do {
-                try await configChannel!.exitProvisioning()
-            } catch {
-                throw ESPProviderError(errorCode: .communicationError, errorMessage: error.localizedDescription)
-            }
+        do {
+            try await configChannel!.exitProvisioning()
+        } catch {
+            throw ESPProviderError(errorCode: .communicationError, errorMessage: error.localizedDescription)
         }
     }
 
