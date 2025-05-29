@@ -19,6 +19,7 @@
 
 import Foundation
 import ESPProvision
+import OSLog
 
 struct DeviceInfo {
     let deviceId: String
@@ -33,6 +34,11 @@ enum BackendConnectionStatus {
 }
 
 struct ORConfigChannel {
+    private static let logger = Logger(
+           subsystem: Bundle.main.bundleIdentifier!,
+           category: String(describing: ORConfigChannel.self)
+       )
+
     let device: ORESPDevice
 
     var messageId = 0
@@ -103,12 +109,15 @@ struct ORConfigChannel {
         var request = Request()
         request.body = .exitProvisioning(Request.ExitProvisioning())
 
+        Self.logger.info("Sending exitProvisioning request")
         _ = try await sendRequest(request)
+        Self.logger.info("ExitProvisioning request sent")
     }
 
     private mutating func sendRequest(_ request: Request) async throws -> Response {
         var request = request
         request.id = String(messageId)
+        Self.logger.info("Send request with messageId: \(request.id)")
         messageId += 1
 
         do {
@@ -118,9 +127,10 @@ struct ORConfigChannel {
             }
             return try await withCheckedThrowingContinuation { continuation in
                 device.sendData(path: "or-cfg", data: requestData) { responseData, error in
+                    Self.logger.info("Received a response")
                     if let error {
-                        // TODO:
-                        print("Error: \(error.localizedDescription)")
+                        // TODO: anything better to do with error ?
+                        Self.logger.error("Error sending request: \(error.localizedDescription)")
                         continuation.resume(throwing: ORConfigChannelError.genericError)
                     } else if let responseData {
                         do {
