@@ -19,6 +19,7 @@
 
 import UIKit
 import CoreLocation
+import os
 
 public class GeofenceProvider: NSObject, URLSessionDelegate {
 
@@ -165,7 +166,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
                     }
                     self.clearAllRegions()
                     NSLog("%@", "Geofences count: \(geofences.count)")
-                    print("Geofences count: \(geofences.count)")
+                    ORLogger.geofence.info("Geofences count: \(geofences.count)")
                     for geofence in geofences {
                         self.addGeofence(geofence: geofence)
                     }

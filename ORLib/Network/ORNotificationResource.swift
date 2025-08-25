@@ -18,6 +18,7 @@
  */
 
 import UIKit
+import os
 
 public class ORNotificationResource: NSObject, URLSessionDelegate {
 
@@ -44,7 +45,7 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
                         let error = NSError(domain: "", code: 0, userInfo:  [
                             NSLocalizedDescriptionKey :  NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
                         ])
-                        print(error)
+                        ORLogger.network.error("\(error)")
                     }
                 }
             })
@@ -74,7 +75,7 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
                         let error = NSError(domain: "", code: 0, userInfo:  [
                             NSLocalizedDescriptionKey :  NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
                         ])
-                        print(error)
+                        ORLogger.network.error("\(error)")
                     }
                 }
             })

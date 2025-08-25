@@ -18,6 +18,7 @@
  */
 
 import UIKit
+import os
 
 enum HttpMethod: String {
     case get = "GET"
@@ -82,7 +83,7 @@ public class HttpApiManager: NSObject, ApiManager {
             }
 
             guard let responseModel = try? self.decoder.decode(ORConsoleConfig.self, from: responseData) else {
-                print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                ORLogger.config.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                 callback?(httpStatusCode, nil,  error);
                 return;
             }
@@ -115,7 +116,7 @@ public class HttpApiManager: NSObject, ApiManager {
                 }
                 
                 guard let responseModel = try? self.decoder.decode(ORConsoleConfig.self, from: responseData) else {
-                    print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                    ORLogger.config.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                     continuation.resume(throwing: ApiManagerError.parsingError(httpStatusCode))
                     return
                 }
@@ -148,7 +149,7 @@ public class HttpApiManager: NSObject, ApiManager {
             }
 
             guard let responseModel = try? self.decoder.decode([String].self, from: responseData) else {
-                print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                 callback?(httpStatusCode, nil,  error);
                 return;
             }
@@ -181,7 +182,7 @@ public class HttpApiManager: NSObject, ApiManager {
                 }
 
                 guard let responseModel = try? self.decoder.decode([String].self, from: responseData) else {
-                    print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                    ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                     continuation.resume(throwing: ApiManagerError.parsingError(httpStatusCode))
                     return
                 }
@@ -216,7 +217,7 @@ public class HttpApiManager: NSObject, ApiManager {
                 }
 
                 guard let responseModel = try? self.decoder.decode(ORAppInfo.self, from: responseData) else {
-                    print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                    ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                     continuation.resume(throwing: ApiManagerError.parsingError(httpStatusCode))
                     return
                 }
@@ -274,7 +275,7 @@ public class HttpApiManager: NSObject, ApiManager {
             }
 
             guard let responseModel = try? self.decoder.decode(T.self, from: responseData) else {
-                print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                 callback?(httpStatusCode, nil,  error);
                 return;
             }
@@ -300,7 +301,7 @@ public class HttpApiManager: NSObject, ApiManager {
             }
 
             guard let responseModel = try? self.decoder.decode(R.self, from: responseData) else {
-                print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                 callback?(httpStatusCode, nil, error);
                 return;
             }
@@ -336,7 +337,7 @@ public class HttpApiManager: NSObject, ApiManager {
             }
 
             guard let responseModel = try? self.decoder.decode(R.self, from: responseData) else {
-                print("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
+                ORLogger.network.error("Couldn't parse response: \(String(data: responseData, encoding: .utf8)!)")
                 callback?(httpStatusCode, nil, error);
                 return;
             }

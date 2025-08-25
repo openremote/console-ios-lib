@@ -21,6 +21,7 @@ import Foundation
 import OSLog
 import UIKit
 import WebKit
+import os
 
 open class ORViewcontroller : UIViewController {
     private static let logger = Logger(
@@ -95,7 +96,7 @@ open class ORViewcontroller : UIViewController {
                 DispatchQueue.main.async {
                     self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (any, error) in
                         if let err = error {
-                            print(err)
+                            ORLogger.webview.error("\(err)")
                         }
                     })
                 }
@@ -201,8 +202,8 @@ open class ORViewcontroller : UIViewController {
     }
     
     internal func handleError(errorCode: Int, description: String, failingUrl: String, isForMainFrame: Bool) {
-        print("Error requesting '\(failingUrl)': \(errorCode) (\(description))")
-        
+        ORLogger.network.error("Error requesting '\(failingUrl)': \(errorCode) (\(description))")
+
         if !self.offlineVIewControllerPresented {
             let alertView = UIAlertController(title: "Error", message: "Error requesting '\(failingUrl)': \(errorCode) (\(description))", preferredStyle: .alert)
             
@@ -262,7 +263,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         sendData(data: disableData)
                                     }
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.geofence:
                                 switch(action) {
@@ -291,7 +292,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                 case Actions.geofenceRefresh:
                                     geofenceProvider?.refreshGeofences()
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.storage:
                                 switch(action) {
@@ -315,7 +316,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         sendData(data: retrieveData)
                                     }
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.qr:
                                 switch (action) {
@@ -340,7 +341,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         self.sendData(data: scannedData)
                                     })
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.ble:
                                 switch (action) {
@@ -390,7 +391,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         }
                                     }
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.espprovision:
                                 switch(action) {
@@ -463,10 +464,10 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         self.sendData(data: payload)
                                     }
                                 default:
-                                    print("Wrong action \(action) for \(provider)")
+                                    ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             default:
-                                print("Unknown provider type: \(provider )")
+                                ORLogger.providers.error("Unknown provider type: \(provider )")
                             }
                         }
                     }
@@ -475,7 +476,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                 clearWebBackForwardList()
                 break
             default:
-                print("Unknown message type: \(type )")
+                ORLogger.webview.error("Unknown message type: \(type )")
             }
         }
     }
@@ -593,7 +594,7 @@ extension ORViewcontroller: WKNavigationDelegate {
 extension ORViewcontroller: ConnectivityDelegate {
     func connectivityStatusDidChange(isConnected: Bool) {
         DispatchQueue.main.async {
-            print("connection changed \(isConnected)")
+            ORLogger.network.info("connection changed \(isConnected)")
             if isConnected {
                 if (self.offlineVIewControllerPresented) {
                     self.reloadWebView()

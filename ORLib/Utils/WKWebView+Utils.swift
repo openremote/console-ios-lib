@@ -18,6 +18,7 @@
  */
 
 import WebKit
+import os
 
 extension WKWebView {
     
@@ -36,7 +37,7 @@ extension WKWebView {
         WKWebsiteDataStore.default().fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
                     records.forEach { record in
                         WKWebsiteDataStore.default().removeData(ofTypes: record.dataTypes, for: [record], completionHandler: {})
-                        print("[WebCacheCleaner] Record \(record) deleted")
+                        ORLogger.webview.info("[WebCacheCleaner] Record \(record) deleted")
                     }
                 }
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
