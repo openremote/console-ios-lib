@@ -18,6 +18,7 @@
  */
 
 import Foundation
+import os
 @testable import ORLib
 
 class FileApiManager: ApiManager {
@@ -41,7 +42,7 @@ class FileApiManager: ApiManager {
                                 fixture = try self.decoder.decode(Fixture.self, from: fixtureData)
                                 return
                             } catch {
-                                print(error)
+                                ORLogger.test.error("\(error)")
                             }
                         }
                     }

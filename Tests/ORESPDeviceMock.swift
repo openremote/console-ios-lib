@@ -21,6 +21,7 @@
 @testable import ESPProvision
 import Foundation
 import Testing
+import os
 
 @testable import ORLib
 
@@ -83,7 +84,7 @@ class ORESPDeviceMock: ORESPDevice {
 
     func disconnect() {
         // TODO: could have a counter here ?
-        print("device - disconnect")
+        ORLogger.test.info("device - disconnect")
 
     }
 

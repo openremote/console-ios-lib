@@ -18,6 +18,7 @@
  */
 
 import Foundation
+import os
 
 extension String {
 
@@ -40,7 +41,7 @@ extension String {
                 return "https://[\(self)]"
             }
         } catch let error as NSError {
-            print("Error creating NSRegularExpression: \(error)")
+            ORLogger.utils.error("Error creating NSRegularExpression: \(error)")
         }
 
         let numberOfMatches: Int
@@ -49,7 +50,7 @@ extension String {
             numberOfMatches = schemePrefix.numberOfMatches(in: self, options: [], range: NSRange(location: 0, length: self.utf16.count))
         } catch let error as NSError {
             numberOfMatches = 0
-            print("Error creating NSRegularExpression: \(error)")
+            ORLogger.utils.error("Error creating NSRegularExpression: \(error)")
         }
         if numberOfMatches == 1 {
             if self.firstIndex(of: ".") != nil || self.firstIndex(of: "[") != nil {

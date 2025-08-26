@@ -18,6 +18,7 @@
  */
 
 import Foundation
+import os
 
 public enum ConfigManagerState: Equatable {
     case selectDomain
@@ -126,7 +127,7 @@ public class ConfigManager {
                 }
                 return state
             } catch {
-                print("SetDomain -> error: \(error)")
+                ORLogger.config.error("SetDomain -> error: \(error)")
                 throw ConfigManagerError.couldNotLoadAppConfig
             }
         case .selectApp,

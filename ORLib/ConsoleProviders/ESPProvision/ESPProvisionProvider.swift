@@ -25,10 +25,6 @@ import os
 typealias SendDataCallback = ([String: Any]) -> (Void)
 
 class ESPProvisionProvider: NSObject {
-    private static let logger = Logger(
-           subsystem: Bundle.main.bundleIdentifier!,
-           category: String(describing: ESPProvisionProvider.self)
-       )
     public static let espProvisionDisabledKey = "espProvisionDisabled"
 
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)

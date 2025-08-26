@@ -21,10 +21,6 @@ import Foundation
 import os
 
 struct BatteryProvisionAPIREST: BatteryProvisionAPI {
-    private static let logger = Logger(
-           subsystem: Bundle.main.bundleIdentifier!,
-           category: String(describing: ESPProvisionProvider.self)
-       )
 
     init(apiURL: URL) {
         self.apiURL = apiURL
@@ -55,11 +51,11 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
             request.httpBody = try JSONEncoder().encode(ProvisionRequestBody(deviceId: deviceId, password: password))
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                Self.logger.error("Received a non HTTP response")
+                ORLogger.espprovisioning.error("Received a non HTTP response")
                 throw BatteryProvisionAPIError.communicationError("Invalid response format")
             }
             guard (200...299).contains(response.statusCode) else {
-                Self.logger.info("HTTP call error, status code \(response.statusCode)")
+                ORLogger.espprovisioning.warning("HTTP call error, status code \(response.statusCode)")
                 switch response.statusCode {
                 case 401:
                     throw BatteryProvisionAPIError.unauthorized
@@ -72,12 +68,12 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
             if let mimeType = response.mimeType,
                 mimeType == "application/json",
                 let dataString = String(data: data, encoding: .utf8) {
-                   Self.logger.info("Received JSON response from server \(dataString)")
+                ORLogger.espprovisioning.info("Received JSON response from server \(dataString)")
                     let assetId = try JSONDecoder().decode(ProvisionResponseBody.self, from: data).assetId
                     return assetId
             }
         } catch {
-            print(error.localizedDescription)
+            ORLogger.espprovisioning.error("\(error.localizedDescription)")
             throw BatteryProvisionAPIError.genericError(error)
         }
         throw BatteryProvisionAPIError.unknownError
