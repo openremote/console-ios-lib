@@ -92,7 +92,7 @@ open class ORViewcontroller : UIViewController {
                                         encoding: .utf8) {
                 Self.logger.info("Sending to webapp \(theJSONText)")
 
-                let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText)')"
+                let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText.escapeForJavaScript())')"
                 DispatchQueue.main.async {
                     self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (any, error) in
                         if let err = error {
