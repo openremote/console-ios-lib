@@ -54,7 +54,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -96,7 +96,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -154,7 +154,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedDeviceInformation = false
@@ -191,7 +191,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedDeviceInformation = false
@@ -233,7 +233,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -265,7 +265,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 0.2)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -306,7 +306,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 120, searchDeviceMaxIterations: 5)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -345,7 +345,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         var receivedData: [String:Any] = [:]
@@ -420,7 +420,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -451,7 +451,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         _ = await getDevice(provider: provider)
@@ -491,7 +491,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         _ = await getDevice(provider: provider)
@@ -515,7 +515,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -562,7 +562,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -619,7 +619,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 0.2)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -665,7 +665,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 120, searchWifiMaxIterations: 5)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -709,7 +709,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -755,7 +755,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -786,7 +786,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -858,7 +858,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -914,7 +914,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         _ = await getDevice(provider: provider)
@@ -957,7 +957,7 @@ struct ESPProvisionProviderTest {
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
                                             batteryProvisionAPI: batteryProvisionAPIMock)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -1042,7 +1042,7 @@ struct ESPProvisionProviderTest {
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
                                             batteryProvisionAPI: batteryProvisionAPIMock)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -1126,7 +1126,7 @@ struct ESPProvisionProviderTest {
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
                                             batteryProvisionAPI: batteryProvisionAPIMock, backendConnectionTimeout: 0.5)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -1193,7 +1193,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         _ = await getDevice(provider: provider)
@@ -1231,8 +1231,9 @@ struct ESPProvisionProviderTest {
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
                                             batteryProvisionAPI: batteryProvisionAPIMock)
+        mockDevice.addMockData(ORConfigChannelTest.responseData(body: .exitProvisioning(Response.ExitProvisioning())))
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         let device = await getDevice(provider: provider)
@@ -1265,7 +1266,7 @@ struct ESPProvisionProviderTest {
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
-        _ = provider.enable()
+        _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
         _ = await getDevice(provider: provider)
@@ -1283,6 +1284,25 @@ struct ESPProvisionProviderTest {
     }
 
     // MARK: helpers
+
+    private func enable(provider: ESPProvisionProvider) async -> Bool {
+        var receivedData: [String:Any] = [:]
+
+        await withCheckedContinuation { continuation in
+            var continuationCalled = false
+            provider.sendDataCallback = { data in
+                receivedData = data
+                if !continuationCalled {
+                    continuationCalled = true
+                    continuation.resume()
+                }
+            }
+
+            provider.enable()
+        }
+
+        return (receivedData["success"] as! Bool)
+    }
 
     private func getDevice(provider: ESPProvisionProvider) async -> [String: Any] {
         var receivedData: [String:Any] = [:]
