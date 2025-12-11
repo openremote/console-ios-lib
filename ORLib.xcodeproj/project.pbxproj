@@ -55,6 +55,7 @@
 		91A9A8FB28BF6A4900DF8928 /* ConfigManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A9A8FA28BF6A4900DF8928 /* ConfigManagerTest.swift */; };
 		91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A9A90028BF6EA000DF8928 /* FileApiManager.swift */; };
 		91AA79F328D628E9005B9913 /* Fixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91AA79F228D628E9005B9913 /* Fixture.swift */; };
+		91C598D72EE8509400B72583 /* ORLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C598D62EE8509400B72583 /* ORLogger.swift */; };
 		91D2D11828E973BF0030E2FB /* test7.json in Resources */ = {isa = PBXBuildFile; fileRef = 91D2D11728E973BF0030E2FB /* test7.json */; };
 		91D2D11A28E988B10030E2FB /* test8.json in Resources */ = {isa = PBXBuildFile; fileRef = 91D2D11928E988B10030E2FB /* test8.json */; };
 		91DD55A12DE7306100957233 /* BLEPermissionsChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */; };
@@ -156,6 +157,7 @@
 		91AA79F028D4D525005B9913 /* ProjectConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectConfig.swift; sourceTree = "<group>"; };
 		91AA79F228D628E9005B9913 /* Fixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixture.swift; sourceTree = "<group>"; };
 		91C0BE8A2D9AED9F00ED3492 /* ORLib.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = ORLib.xctestplan; sourceTree = "<group>"; };
+		91C598D62EE8509400B72583 /* ORLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORLogger.swift; sourceTree = "<group>"; };
 		91D2D11728E973BF0030E2FB /* test7.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = test7.json; sourceTree = "<group>"; };
 		91D2D11928E988B10030E2FB /* test8.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = test8.json; sourceTree = "<group>"; };
 		91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPermissionsChecker.swift; sourceTree = "<group>"; };
@@ -266,6 +268,7 @@
 		4CF5D05B27143F1F00D705BE /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				91C598D62EE8509400B72583 /* ORLogger.swift */,
 				4CF5D05C27143F1F00D705BE /* Constants.swift */,
 				4CF5D05D27143F1F00D705BE /* Window+Utils.swift */,
 				4CF5D05E27143F1F00D705BE /* UIColor+Utils.swift */,
@@ -341,7 +344,6 @@
 				91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */,
 				91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */,
 				91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */,
-				9154E29F2D9EB0D50055E565 /* ConfigManagerSwiftTest.swift */,
 				9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
 				9154E2A12D9EB3220055E565 /* URLTest.swift */,
 			);
@@ -507,6 +509,7 @@
 				4CBDF2C42AE2869D00C7D94C /* ORPushNotificationAction.swift in Sources */,
 				4CDE11E02B286275005A4170 /* WKWebView+Utils.swift in Sources */,
 				4CBDF2C52AE2869D00C7D94C /* ORConsoleConfig.swift in Sources */,
+				91C598D72EE8509400B72583 /* ORLogger.swift in Sources */,
 				4C4A309A2B824F500096BBA8 /* ViewControllerFactory.swift in Sources */,
 				4CBDF2C62AE2869D00C7D94C /* ORAppInfo.swift in Sources */,
 				4CBDF2C72AE2869D00C7D94C /* ProjectConfig.swift in Sources */,
