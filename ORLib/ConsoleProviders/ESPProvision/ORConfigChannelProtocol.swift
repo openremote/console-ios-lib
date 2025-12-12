@@ -371,14 +371,7 @@ struct Request: Sendable {
 
 extension Response: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = "Response"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "id"),
-    2: .same(proto: "result"),
-    6: .standard(proto: "device_info"),
-    7: .standard(proto: "backend_connection_status"),
-    8: .standard(proto: "open_remote_config"),
-    9: .standard(proto: "exit_provisioning"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}result\0\u{4}\u{4}device_info\0\u{3}backend_connection_status\0\u{3}open_remote_config\0\u{3}exit_provisioning\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -489,9 +482,7 @@ extension Response: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationB
 
 extension Response.ResponseResult: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Response.protoMessageName + ".ResponseResult"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "result"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}result\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -520,19 +511,12 @@ extension Response.ResponseResult: SwiftProtobuf.Message, SwiftProtobuf._Message
 }
 
 extension Response.ResponseResult.Result: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    0: .same(proto: "SUCCESS"),
-    1: .same(proto: "REQUEST_UNKNOWN"),
-    2: .same(proto: "INTERNAL_ERROR"),
-    3: .same(proto: "ARGUMENT_ERROR"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0SUCCESS\0\u{1}REQUEST_UNKNOWN\0\u{1}INTERNAL_ERROR\0\u{1}ARGUMENT_ERROR\0")
 }
 
 extension Response.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Response.protoMessageName + ".OpenRemoteConfig"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "status"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}status\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -561,17 +545,12 @@ extension Response.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._Messa
 }
 
 extension Response.OpenRemoteConfig.Status: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    0: .same(proto: "SUCCESS"),
-    1: .same(proto: "FAIL"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0SUCCESS\0\u{1}FAIL\0")
 }
 
 extension Response.BackendConnectionStatus: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Response.protoMessageName + ".BackendConnectionStatus"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "status"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}status\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -600,20 +579,12 @@ extension Response.BackendConnectionStatus: SwiftProtobuf.Message, SwiftProtobuf
 }
 
 extension Response.BackendConnectionStatus.Status: SwiftProtobuf._ProtoNameProviding {
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    0: .same(proto: "DISCONNECTED"),
-    1: .same(proto: "CONNECTING"),
-    2: .same(proto: "CONNECTED"),
-    3: .same(proto: "FAILED"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0DISCONNECTED\0\u{1}CONNECTING\0\u{1}CONNECTED\0\u{1}FAILED\0")
 }
 
 extension Response.DeviceInfo: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Response.protoMessageName + ".DeviceInfo"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .standard(proto: "device_id"),
-    3: .standard(proto: "model_name"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}device_id\0\u{4}\u{2}model_name\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -667,13 +638,7 @@ extension Response.ExitProvisioning: SwiftProtobuf.Message, SwiftProtobuf._Messa
 
 extension Request: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = "Request"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .same(proto: "id"),
-    6: .standard(proto: "device_info"),
-    7: .standard(proto: "backend_connection_status"),
-    8: .standard(proto: "open_remote_config"),
-    9: .standard(proto: "exit_provisioning"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{4}\u{5}device_info\0\u{3}backend_connection_status\0\u{3}open_remote_config\0\u{3}exit_provisioning\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -817,13 +782,7 @@ extension Request.BackendConnectionStatus: SwiftProtobuf.Message, SwiftProtobuf.
 
 extension Request.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Request.protoMessageName + ".OpenRemoteConfig"
-  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
-    1: .standard(proto: "mqtt_broker_url"),
-    2: .same(proto: "user"),
-    3: .standard(proto: "mqtt_password"),
-    4: .same(proto: "realm"),
-    5: .standard(proto: "asset_id"),
-  ]
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}mqtt_broker_url\0\u{1}user\0\u{3}mqtt_password\0\u{1}realm\0\u{3}asset_id\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
