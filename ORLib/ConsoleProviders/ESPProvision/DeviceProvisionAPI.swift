@@ -20,7 +20,7 @@
 import Foundation
 import os
 
-struct BatteryProvisionAPIREST: BatteryProvisionAPI {
+struct DeviceProvisionAPIREST: DeviceProvisionAPI {
 
     init(apiURL: URL) {
         self.apiURL = apiURL
@@ -28,7 +28,7 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
 
     private var apiURL: URL
 
-    func provision(deviceId: String, password: String, token: String) async throws -> String {
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String {
         /*
          curl -v http://localhost:8080/api/master/rest/battery -d'{
          "model": 0,
@@ -39,30 +39,30 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
 
         let url: URL
         if #available(iOS 16.0, *) {
-            url = apiURL.appending(path: "/rest/battery")
+            url = apiURL.appending(path: "/rest/device")
         } else {
-            url = apiURL.appendingPathComponent("/rest/battery")
+            url = apiURL.appendingPathComponent("/rest/device")
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         do {
-            request.httpBody = try JSONEncoder().encode(ProvisionRequestBody(deviceId: deviceId, password: password))
+            request.httpBody = try JSONEncoder().encode(ProvisionRequestBody(modelName: modelName, deviceId: deviceId, password: password))
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
                 ORLogger.espprovisioning.error("Received a non HTTP response")
-                throw BatteryProvisionAPIError.communicationError("Invalid response format")
+                throw DeviceProvisionAPIError.communicationError("Invalid response format")
             }
             guard (200...299).contains(response.statusCode) else {
                 ORLogger.espprovisioning.warning("HTTP call error, status code \(response.statusCode)")
                 switch response.statusCode {
                 case 401:
-                    throw BatteryProvisionAPIError.unauthorized
+                    throw DeviceProvisionAPIError.unauthorized
                 case 409:
-                    throw BatteryProvisionAPIError.businessError
+                    throw DeviceProvisionAPIError.businessError
                 default:
-                    throw BatteryProvisionAPIError.unknownError
+                    throw DeviceProvisionAPIError.unknownError
                 }
             }
             if let mimeType = response.mimeType,
@@ -74,12 +74,13 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
             }
         } catch {
             ORLogger.espprovisioning.error("\(error.localizedDescription)")
-            throw BatteryProvisionAPIError.genericError(error)
+            throw DeviceProvisionAPIError.genericError(error)
         }
-        throw BatteryProvisionAPIError.unknownError
+        throw DeviceProvisionAPIError.unknownError
     }
 
     struct ProvisionRequestBody: Encodable {
+        var modelName: String
         var deviceId: String
         var password: String
     }
@@ -89,7 +90,7 @@ struct BatteryProvisionAPIREST: BatteryProvisionAPI {
     }
 }
 
-enum BatteryProvisionAPIError: Error {
+enum DeviceProvisionAPIError: Error {
     case unauthorized
     case communicationError(String)
     case businessError

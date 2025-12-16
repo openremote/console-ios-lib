@@ -23,15 +23,17 @@ import Foundation
 
 @testable import ORLib
 
-class BatteryProvisionAPIMock: BatteryProvisionAPI {
+class DeviceProvisionAPIMock: DeviceProvisionAPI {
 
+    var receivedModelName: String?
     var receivedDeviceId: String?
     var receivedPassword: String?
     var receivedToken: String?
     var provisionCallCount = 0
 
-    func provision(deviceId: String, password: String, token: String) async throws -> String {
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String {
         provisionCallCount += 1
+        receivedModelName = modelName
         receivedDeviceId = deviceId
         receivedPassword = password
         receivedToken = token

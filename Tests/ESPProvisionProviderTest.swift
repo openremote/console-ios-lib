@@ -952,10 +952,10 @@ struct ESPProvisionProviderTest {
         mockDevice.addMockData(ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatus)))
         espProvisionMock.mockDevices = [mockDevice]
 
-        let batteryProvisionAPIMock = BatteryProvisionAPIMock()
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            batteryProvisionAPI: batteryProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -996,7 +996,7 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
+            #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 
         } else {
@@ -1007,10 +1007,11 @@ struct ESPProvisionProviderTest {
         #expect(request.id == "2")
         #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
 
-        #expect(batteryProvisionAPIMock.provisionCallCount == 1)
-        #expect(batteryProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
-        #expect(batteryProvisionAPIMock.receivedPassword != nil)
-        #expect(batteryProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+        #expect(deviceProvisionAPIMock.provisionCallCount == 1)
+        #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
+        #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
+        #expect(deviceProvisionAPIMock.receivedPassword != nil)
+        #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
     }
 
     @Test func provisionDeviceSuccessAfterMultipleStatusRequest() async throws {
@@ -1037,10 +1038,10 @@ struct ESPProvisionProviderTest {
         mockDevice.addMockData(ORConfigChannelTest.responseData(id: "4", body: .backendConnectionStatus(expectedBackendConnectionStatusSuccess)))
         espProvisionMock.mockDevices = [mockDevice]
 
-        let batteryProvisionAPIMock = BatteryProvisionAPIMock()
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            batteryProvisionAPI: batteryProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1081,7 +1082,7 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
+            #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 
         } else {
@@ -1094,10 +1095,11 @@ struct ESPProvisionProviderTest {
             #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
         }
 
-        #expect(batteryProvisionAPIMock.provisionCallCount == 1)
-        #expect(batteryProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
-        #expect(batteryProvisionAPIMock.receivedPassword != nil)
-        #expect(batteryProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+        #expect(deviceProvisionAPIMock.provisionCallCount == 1)
+        #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
+        #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
+        #expect(deviceProvisionAPIMock.receivedPassword != nil)
+        #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
     }
 
     @Test func provisionDeviceFailureTimeout() async throws {
@@ -1121,10 +1123,10 @@ struct ESPProvisionProviderTest {
         mockDevice.addMockData(ORConfigChannelTest.responseData(id: "4", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)), delay: 0.2)
         espProvisionMock.mockDevices = [mockDevice]
 
-        let batteryProvisionAPIMock = BatteryProvisionAPIMock()
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            batteryProvisionAPI: batteryProvisionAPIMock, backendConnectionTimeout: 0.5)
+                                            deviceProvisionAPI: deviceProvisionAPIMock, backendConnectionTimeout: 0.5)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1167,7 +1169,7 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.realm == "master")
             #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
-            #expect(openRemoteConfig.mqttPassword == batteryProvisionAPIMock.receivedPassword)
+            #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
 
         } else {
@@ -1180,10 +1182,11 @@ struct ESPProvisionProviderTest {
             #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
         }
 
-        #expect(batteryProvisionAPIMock.provisionCallCount == 1)
-        #expect(batteryProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
-        #expect(batteryProvisionAPIMock.receivedPassword != nil)
-        #expect(batteryProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+        #expect(deviceProvisionAPIMock.provisionCallCount == 1)
+        #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
+        #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
+        #expect(deviceProvisionAPIMock.receivedPassword != nil)
+        #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
     }
 
     @Test func provisionDeviceNotConnected() async throws {
@@ -1227,10 +1230,10 @@ struct ESPProvisionProviderTest {
 
         espProvisionMock.mockDevices = [mockDevice]
 
-        let batteryProvisionAPIMock = BatteryProvisionAPIMock()
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            batteryProvisionAPI: batteryProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock)
         mockDevice.addMockData(ORConfigChannelTest.responseData(body: .exitProvisioning(Response.ExitProvisioning())))
         _ = provider.initialize()
         _ = await enable(provider: provider)

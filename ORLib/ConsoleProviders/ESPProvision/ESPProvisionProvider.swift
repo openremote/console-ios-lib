@@ -47,9 +47,9 @@ class ESPProvisionProvider: NSObject {
 
     private var blePermissionsChecker: BLEPermissionsChecker?
 
-    typealias BatteryProvisionFactory = () -> BatteryProvision
-    private lazy var batteryProvisionFactory: BatteryProvisionFactory = {
-        BatteryProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: self.apiURL)
+    typealias DeviceProvisionFactory = () -> DeviceProvision
+    private lazy var deviceProvisionFactory: DeviceProvisionFactory = {
+        DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: self.apiURL)
     }
 
     private var callbackChannel: CallbackChannel?
@@ -197,9 +197,9 @@ class ESPProvisionProvider: NSObject {
         }
         Task {
             do {
-                let batteryProvision = batteryProvisionFactory()
+                let deviceProvision = deviceProvisionFactory()
 
-                try await batteryProvision.provision(userToken: userToken)
+                try await deviceProvision.provision(userToken: userToken)
             } catch let error as ESPProviderError {
                 sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
             } catch {
@@ -223,7 +223,7 @@ class ESPProvisionProvider: NSObject {
 extension ESPProvisionProvider {
     public convenience init(searchDeviceTimeout: TimeInterval = 120, searchDeviceMaxIterations: Int = 25,
                             searchWifiTimeout: TimeInterval = 120, searchWifiMaxIterations: Int = 25,
-                            batteryProvisionAPI: BatteryProvisionAPI? = nil, backendConnectionTimeout: TimeInterval? = nil,
+                            deviceProvisionAPI: DeviceProvisionAPI? = nil, backendConnectionTimeout: TimeInterval? = nil,
                             apiURL: URL = URL(string:"http://localhost:8080/api/master")!) {
         self.init()
         self.searchDeviceTimeout = searchDeviceTimeout
@@ -234,15 +234,15 @@ extension ESPProvisionProvider {
         self.searchWifiTimeout = searchWifiTimeout
         self.searchWifiMaxIterations = searchWifiMaxIterations
 
-        self.batteryProvisionFactory = {
-            let batteryProvision = BatteryProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: apiURL)
-            if let batteryProvisionAPI {
-                batteryProvision.batteryProvisionAPI = batteryProvisionAPI
+        self.deviceProvisionFactory = {
+            let deviceProvision = DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: apiURL)
+            if let deviceProvisionAPI {
+                deviceProvision.deviceProvisionAPI = deviceProvisionAPI
             }
             if let backendConnectionTimeout {
-                batteryProvision.backendConnectionTimeout = backendConnectionTimeout
+                deviceProvision.backendConnectionTimeout = backendConnectionTimeout
             }
-            return batteryProvision
+            return deviceProvision
         }
     }
 

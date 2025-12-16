@@ -21,11 +21,11 @@ import Foundation
 import os
 import RandomPasswordGenerator
 
-protocol BatteryProvisionAPI {
-    func provision(deviceId: String, password: String, token: String) async throws -> String
+protocol DeviceProvisionAPI {
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String
 }
 
-class BatteryProvision {
+class DeviceProvision {
     private static let logger = Logger(
            subsystem: Bundle.main.bundleIdentifier!,
            category: String(describing: ESPProvisionProvider.self)
@@ -35,7 +35,7 @@ class BatteryProvision {
     var callbackChannel: CallbackChannel?
 
     var apiURL: URL
-    var batteryProvisionAPI: BatteryProvisionAPI
+    var deviceProvisionAPI: DeviceProvisionAPI
 
     var backendConnectionTimeout: TimeInterval = 60
 
@@ -43,7 +43,7 @@ class BatteryProvision {
         self.deviceConnection = deviceConnection
         self.callbackChannel = callbackChannel
         self.apiURL = apiURL
-        self.batteryProvisionAPI = BatteryProvisionAPIREST(apiURL: apiURL)
+        self.deviceProvisionAPI = DeviceProvisionAPIREST(apiURL: apiURL)
     }
 
     public func provision(userToken: String) async {
@@ -58,7 +58,7 @@ class BatteryProvision {
 
             let password = try generatePassword()
 
-            let assetId = try await batteryProvisionAPI.provision(deviceId: deviceInfo.deviceId, password: password, token: userToken)
+            let assetId = try await deviceProvisionAPI.provision(modelName: deviceInfo.modelName, deviceId: deviceInfo.deviceId, password: password, token: userToken)
             let userName = deviceInfo.deviceId.lowercased(with: Locale(identifier: "en"))
 
             try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL, mqttUser: userName, mqttPassword: password, assetId: assetId)
@@ -84,15 +84,15 @@ class BatteryProvision {
             sendProvisionDeviceStatus(connected: false, error: error.errorCode, errorMessage: error.errorMessage)
         } catch let error as RandomPasswordGeneratorError {
             sendProvisionDeviceStatus(connected: false, error: .genericError, errorMessage: error.localizedDescription)
-        } catch let error as BatteryProvisionAPIError {
-            let (errorCode, errorMessage) = mapBatteryProvisionAPIError(error)
+        } catch let error as DeviceProvisionAPIError {
+            let (errorCode, errorMessage) = mapDeviceProvisionAPIError(error)
             sendProvisionDeviceStatus(connected: false, error: errorCode, errorMessage: errorMessage)
         } catch {
             sendProvisionDeviceStatus(connected: false, error: .genericError, errorMessage: error.localizedDescription)
         }
     }
 
-    private func mapBatteryProvisionAPIError(_ error: BatteryProvisionAPIError) -> (ESPProviderErrorCode, String?) {
+    private func mapDeviceProvisionAPIError(_ error: DeviceProvisionAPIError) -> (ESPProviderErrorCode, String?) {
         switch error {
         case .businessError, .unknownError:
             return (ESPProviderErrorCode.genericError, nil)
