@@ -32,3 +32,12 @@ import ORLib
 ## License
 
 ORLib is available under the AGPL-3.0 license. See the LICENSE.txt file for more info.
+
+## Protocol Buffer file
+
+The ESPProvision provider uses Protocol Buffer to communicate with the ESP32 device.  
+The protobuf data specification is defined in the ORConfigChannelProtocol.proto file.  
+Compiling this to Swift code is performed manually using the protoc compiler by the developer
+and the resulting Swift code is committed in the repository as part of the source code.   
+As indicated in [Generating stubs | Documentation](https://swiftpackageindex.com/grpc/grpc-swift-protobuf/2.1.2/documentation/grpcprotobuf/generating-stubs),
+Protobuf compilation should not be part of the library build steps as it cannot be guaranteed to the library consumer has protoc available.
