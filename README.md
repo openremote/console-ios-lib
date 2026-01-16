@@ -4,9 +4,9 @@ Library for OpenRemote iOS applications.
 
 ## Requirements
 
-- iOS 14.0+
-- Swift 5.0+
-- Xcode 12.0+
+- iOS 15.0+
+- Swift 5.5+
+- Xcode 16.0+
 
 ## Installation
 
