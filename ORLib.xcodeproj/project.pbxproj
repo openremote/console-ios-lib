@@ -42,6 +42,7 @@
 		4CDE11E02B286275005A4170 /* WKWebView+Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDE11DF2B286275005A4170 /* WKWebView+Utils.swift */; };
 		4CFEC51C2C919AF300DCC936 /* ORLib.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CBDF2AA2AE285E400C7D94C /* ORLib.framework */; };
 		4CFEC51D2C919AF300DCC936 /* ORLib.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4CBDF2AA2AE285E400C7D94C /* ORLib.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		914348322F05400200D4B3D3 /* ORConfigChannelProtocol.proto in Sources */ = {isa = PBXBuildFile; fileRef = 914348312F05400200D4B3D3 /* ORConfigChannelProtocol.proto */; };
 		914F7D4429215D3500655A22 /* test12.json in Resources */ = {isa = PBXBuildFile; fileRef = 914F7D4329215D3500655A22 /* test12.json */; };
 		9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */; };
 		9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E2A12D9EB3220055E565 /* URLTest.swift */; };
@@ -136,6 +137,8 @@
 		4CF5D06527143F1F00D705BE /* ORPushNotificationAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ORPushNotificationAction.swift; sourceTree = "<group>"; };
 		4CF5D06727143F1F00D705BE /* ORNotificationResource.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ORNotificationResource.swift; sourceTree = "<group>"; };
 		4CF5D06827143F1F00D705BE /* HttpApiManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpApiManager.swift; sourceTree = "<group>"; };
+		914348312F05400200D4B3D3 /* ORConfigChannelProtocol.proto */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.protobuf; path = ORConfigChannelProtocol.proto; sourceTree = "<group>"; };
+		914348342F0541BB00D4B3D3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		914F7D4329215D3500655A22 /* test12.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test12.json; sourceTree = "<group>"; };
 		9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringUtilsTest.swift; sourceTree = "<group>"; };
 		9154E2A12D9EB3220055E565 /* URLTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTest.swift; sourceTree = "<group>"; };
@@ -205,6 +208,7 @@
 		4CF5D03E27143EEB00D705BE = {
 			isa = PBXGroup;
 			children = (
+				914348342F0541BB00D4B3D3 /* README.md */,
 				91C0BE8A2D9AED9F00ED3492 /* ORLib.xctestplan */,
 				4C537EE1299D3BA0006EFB94 /* ORLib.h */,
 				4CC64C3E27C3CDD400A2FA4C /* Media.xcassets */,
@@ -228,6 +232,7 @@
 		4CF5D04927143EEC00D705BE /* ORLib */ = {
 			isa = PBXGroup;
 			children = (
+				914348312F05400200D4B3D3 /* ORConfigChannelProtocol.proto */,
 				4CF5D05127143F1F00D705BE /* ConsoleProviders */,
 				4CF5D06127143F1F00D705BE /* Models */,
 				4CF5D06627143F1F00D705BE /* Network */,
@@ -428,7 +433,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1340;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					4CBDF2A92AE285E400C7D94C = {
 						CreatedOnToolsVersion = 15.0;
@@ -529,6 +534,7 @@
 				91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */,
 				4CBDF2CA2AE2869D00C7D94C /* ApiManager.swift in Sources */,
 				4CBDF2CB2AE2869D00C7D94C /* ORTextInput.swift in Sources */,
+				914348322F05400200D4B3D3 /* ORConfigChannelProtocol.proto in Sources */,
 				4CBDF2CC2AE2869D00C7D94C /* ORViewController.swift in Sources */,
 				4CBDF2CD2AE2869D00C7D94C /* ErrorManager.swift in Sources */,
 				4CBDF2CE2AE2869D00C7D94C /* QrScannerViewController.swift in Sources */,
@@ -580,7 +586,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -597,7 +602,7 @@
 					"@loader_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.2;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = io.openremote.ORLib;
@@ -621,7 +626,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -638,7 +642,7 @@
 					"@loader_path/Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 0.4.0;
+				MARKETING_VERSION = 0.5.2;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = io.openremote.ORLib;
@@ -688,6 +692,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -751,6 +756,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -778,7 +784,6 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -798,7 +803,6 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4AC88KZHJZ;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
@@ -857,8 +861,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/yukanamori/RandomPasswordGenerator.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = exactVersion;
+				version = 0.1.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

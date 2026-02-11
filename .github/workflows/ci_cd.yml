@@ -36,7 +36,7 @@ jobs:
       - name: Build and test
         run: |
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
-          -destination 'platform=iOS Simulator,name=iPhone 16' -scheme ORLib -resultBundlePath ORLib.xcresult
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib -resultBundlePath ORLib.xcresult
 
       - name: Extract JUnit test report
         run: |

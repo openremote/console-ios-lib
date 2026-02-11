@@ -99,7 +99,7 @@ class ESPProvisionProvider: NSObject {
             userdefaults?.synchronize()
 
             callbackChannel?.sendMessage(action: Actions.providerEnable, data: [
-                DefaultsKey.hasPermissionKey: permission,
+                DefaultsKey.hasPermissionKey: permission ?? false,
                 DefaultsKey.successKey: true
             ])
         }

@@ -20,7 +20,7 @@ let package = Package(
         .package(
             name: "RandomPasswordGenerator",
             url: "https://github.com/yukanamori/RandomPasswordGenerator.git",
-            .branch("main")
+            .exact("0.1.0")
         )
     ],
     targets: [

@@ -83,7 +83,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
 
-        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        try #require(receivedData["devices"] as? [[String:Any]] != nil)
         let devices = receivedData["devices"] as! [[String:Any]]
         #expect(devices.count == 1)
         let device = devices.first!
@@ -138,7 +138,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
 
-        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        try #require(receivedData["devices"] as? [[String:Any]] != nil)
         devices = receivedData["devices"] as! [[String:Any]]
         #expect(devices.count == 2)
 
@@ -373,7 +373,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
 
-        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        try #require(receivedData["devices"] as? [[String:Any]] != nil)
         var devices = receivedData["devices"] as! [[String:Any]]
         #expect(devices.count == 1)
         var device = devices.first!
@@ -405,7 +405,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
 
-        #expect(receivedData["devices"] as? [[String:Any]] != nil)
+        try #require(receivedData["devices"] as? [[String:Any]] != nil)
         devices = receivedData["devices"] as! [[String:Any]]
         #expect(devices.count == 1)
         device = devices.first!
@@ -545,7 +545,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startWifiScan)
 
-        #expect(receivedData["networks"] as? [[String:Any]] != nil)
+        try #require(receivedData["networks"] as? [[String:Any]] != nil)
         let networks = receivedData["networks"] as! [[String:Any]]
         #expect(networks.count == 1)
         let network = networks.first!
@@ -592,7 +592,7 @@ struct ESPProvisionProviderTest {
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
         #expect(firstReceivedData["action"] as? String == Actions.startWifiScan)
 
-        #expect(firstReceivedData["networks"] as? [[String:Any]] != nil)
+        try #require(firstReceivedData["networks"] as? [[String:Any]] != nil)
         let networks = firstReceivedData["networks"] as! [[String:Any]]
         #expect(networks.count == 1)
         let network = networks.first!
@@ -602,7 +602,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startWifiScan)
 
-        #expect(receivedData["networks"] as? [[String:Any]] != nil)
+        try #require(receivedData["networks"] as? [[String:Any]] != nil)
         let networks2 = receivedData["networks"] as! [[String:Any]]
         #expect(networks2.count == 1)
         let network2 = networks2.first!
