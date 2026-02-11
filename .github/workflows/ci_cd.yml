@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Install xcresultparser
+        run: |
+          brew install xcresultparser
 
       - name: Swift Package Manager cache
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
@@ -33,4 +36,43 @@ jobs:
       - name: Build and test
         run: |
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib -resultBundlePath ORLib.xcresult
+
+      - name: Extract JUnit test report
+        run: |
+          xcresultparser -o junit ORLib.xcresult > junit.xml
+        if: ${{ !cancelled() }}
+
+      - name: Publish Test Report with Insights
+        uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1
+        if: ${{ !cancelled() }}
+        with:
+          report-path: 'junit.xml'
+          integrations-config: |
+            {
+              "junit-to-ctrf": {
+                "enabled": true,
+                "action": "convert",
+                "options": {
+                  "output": "./ctrf-reports/ctrf-report.json",
+                  "toolname": "junit-to-ctrf",
+                  "useSuiteName": false,
+                  "env": {
+                    "appName": "ORLib"
+                  }
+                }
+              }
+            }
+          github-report: true
+          upload-artifact: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Test Report
+        uses: dorny/test-reporter@fe45e9537387dac839af0d33ba56eed8e24189e8 # v2
+        if: ${{ !cancelled() }}
+        with:
+          name: ORLib Tests 
+          path: junit.xml
+          reporter: jest-junit
+
