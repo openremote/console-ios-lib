@@ -76,7 +76,7 @@ public class PushNotificationProvider: NSObject {
 
     public func enable(consoleId: String?, callback: @escaping ([String: Any]) -> (Void)) {
         self.consoleId = consoleId
-        if (self.consoleId != nil) {
+        if self.consoleId != nil {
             userdefaults?.set(self.consoleId!, forKey: GeofenceProvider.consoleIdKey)
             userdefaults?.removeObject(forKey: PushNotificationProvider.pushDisabledKey)
             userdefaults?.synchronize()
