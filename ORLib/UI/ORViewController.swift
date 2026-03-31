@@ -474,7 +474,6 @@ extension ORViewcontroller: WKScriptMessageHandler {
                 }
             case "CLEAR_WEB_HISTORY":
                 clearWebBackForwardList()
-                break
             default:
                 ORLogger.webview.error("Unknown message type: \(type )")
             }

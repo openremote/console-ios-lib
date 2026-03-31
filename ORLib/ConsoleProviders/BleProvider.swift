@@ -163,20 +163,17 @@ extension BleProvider: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             self.startScan()
-            break
         case .poweredOff:
             if central.isScanning {
                 central.stopScan()
             }
             alertBluetoothCallback?()
-            break
             // Alert user : turn on Bluetooth
         case .resetting:
             break
             // Wait for next state update and consider logging interruption of Bluetooth service
         case .unauthorized:
             alertBluetoothCallback?()
-            break
             // Alert user : enable Bluetooth permission in app Settings
         case .unsupported:
             break
