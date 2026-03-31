@@ -39,7 +39,7 @@ class ESPORProvisionManagerMock: ORESPProvisionManager {
         }
         return mockDevices
     }
-    
+
     func stopESPDevicesSearch() {
         stopESPDevicesSearchCallCount += 1
     }
@@ -794,7 +794,7 @@ struct ESPProvisionProviderTest {
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
         var receivedData: [String:Any] = [:]
 
-        
+
         await withCheckedContinuation { continuation in
             var continuationCalled = false
             provider.sendDataCallback = { data in

@@ -29,15 +29,15 @@ public enum ApiManagerError: Error {
 }
 
 public protocol ApiManager {
-    
+
     func getConsoleConfig(callback: ResponseBlock<ORConsoleConfig>?)
 
     func getConsoleConfig() async throws -> ORConsoleConfig?
-    
+
     func getApps(callback: ResponseBlock<[String]>?)
-    
+
     func getApps() async throws -> [String]?
-    
+
     func getAppInfo(appName: String) async throws -> ORAppInfo?
 
 }

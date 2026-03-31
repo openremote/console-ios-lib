@@ -22,12 +22,12 @@ import UIKit
 
 extension UIWindow {
 
-    public var topController : UIViewController? {
+    public var topController: UIViewController? {
 
         guard let rootViewController = self.rootViewController else {
             return nil
         }
-        
+
         var topController = rootViewController
 
         while let newTopController = topController.presentedViewController {

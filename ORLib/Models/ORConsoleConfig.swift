@@ -20,13 +20,13 @@
 import Foundation
 
 public struct ORConsoleConfig: Codable {
-    
+
     public init() {
     }
-    
+
     public var showAppTextInput = false
     public var showRealmTextInput = true
     public var app: String?
     public var allowedApps: [String]?
-    public var apps: [String:ORAppInfo]?
+    public var apps: [String: ORAppInfo]?
 }

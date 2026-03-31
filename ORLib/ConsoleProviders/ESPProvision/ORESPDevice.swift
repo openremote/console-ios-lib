@@ -34,7 +34,7 @@ protocol ORESPDevice {
 
     func provision(ssid: String?, passPhrase: String?, threadOperationalDataset: Data?, completionHandler: @escaping (ESPProvisionStatus) -> Void)
 
-    func sendData(path:String, data:Data, completionHandler: @escaping (Data?, ESPSessionError?) -> Swift.Void)
+    func sendData(path: String, data: Data, completionHandler: @escaping (Data?, ESPSessionError?) -> Swift.Void)
 }
 
 extension ESPDevice: ORESPDevice {
