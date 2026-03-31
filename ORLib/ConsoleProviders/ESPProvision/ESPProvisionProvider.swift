@@ -172,7 +172,10 @@ class ESPProvisionProvider: NSObject {
 
     public func startWifiScan() {
         if wifiProvisioner == nil {
-            wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection, callbackChannel: callbackChannel, searchWifiTimeout: searchWifiTimeout, searchWifiMaxIterations: searchWifiMaxIterations)
+            wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
+                                              callbackChannel: callbackChannel,
+                                              searchWifiTimeout: searchWifiTimeout,
+                                              searchWifiMaxIterations: searchWifiMaxIterations)
         }
         wifiProvisioner!.startWifiScan()
     }
@@ -183,7 +186,10 @@ class ESPProvisionProvider: NSObject {
 
     public func sendWifiConfiguration(ssid: String, password: String) {
         if wifiProvisioner == nil {
-            wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection, callbackChannel: callbackChannel, searchWifiTimeout: searchWifiTimeout, searchWifiMaxIterations: searchWifiMaxIterations)
+            wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
+                                              callbackChannel: callbackChannel,
+                                              searchWifiTimeout: searchWifiTimeout,
+                                              searchWifiMaxIterations: searchWifiMaxIterations)
         }
         wifiProvisioner?.sendWifiConfiguration(ssid: ssid, password: password)
     }
