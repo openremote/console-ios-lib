@@ -44,7 +44,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
             return
         }
 
-        if (captureSession.canAddInput(videoInput)) {
+        if captureSession.canAddInput(videoInput) {
             captureSession.addInput(videoInput)
         } else {
             failed()
@@ -53,7 +53,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
 
         let metadataOutput = AVCaptureMetadataOutput()
 
-        if (captureSession.canAddOutput(metadataOutput)) {
+        if captureSession.canAddOutput(metadataOutput) {
             captureSession.addOutput(metadataOutput)
 
             metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
@@ -89,7 +89,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     }
 
     @objc func cancelButtonTapped() {
-        if (delegate != nil) {
+        if delegate != nil {
             delegate?.codeScanned(nil)
         } else {
             self.dismiss(animated: true, completion: nil)
@@ -106,7 +106,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        if (captureSession?.isRunning == false) {
+        if captureSession?.isRunning == false {
             DispatchQueue.global(qos: .background).async {
                 self.captureSession.startRunning()
             }
@@ -116,7 +116,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
 
-        if (captureSession?.isRunning == true) {
+        if captureSession?.isRunning == true {
             captureSession.stopRunning()
         }
     }

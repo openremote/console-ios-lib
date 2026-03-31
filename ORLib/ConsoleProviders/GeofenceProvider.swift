@@ -159,7 +159,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
             let sessionConfiguration = URLSessionConfiguration.default
             let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
             let req = session.dataTask(with: tkRequest as URLRequest, completionHandler: { (data, _, error) in
-                if (data != nil) {
+                if data != nil {
                     guard let geofences = try? JSONDecoder().decode([GeofenceDefinition].self, from: data!) else {
                         callback?([])
                         return
@@ -248,7 +248,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
             request.addValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpMethod = urlData[0]
 
-            if (data != nil) {
+            if data != nil {
                 if let postBody = try? JSONSerialization.data(withJSONObject: data!, options: []) {
                     request.httpBody = postBody
                 }

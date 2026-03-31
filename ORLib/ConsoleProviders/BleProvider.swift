@@ -71,7 +71,7 @@ public class BleProvider: NSObject {
     }
 
     public func disable() -> [String: Any] {
-        if ((self.centralManager?.isScanning) != nil) {
+        if self.centralManager?.isScanning != nil {
             self.centralManager?.stopScan()
         }
         scanTimer?.invalidate()

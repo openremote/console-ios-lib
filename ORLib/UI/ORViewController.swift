@@ -78,7 +78,7 @@ open class ORViewcontroller: UIViewController {
                 }
             }
         }
-        if (!self.connectivityChecker!.hasInternet()) {
+        if !self.connectivityChecker!.hasInternet() {
             self.present(self.offlineViewController, animated: true)
             self.offlineVIewControllerPresented = true
         }
@@ -239,14 +239,14 @@ extension ORViewcontroller: WKScriptMessageHandler {
         let jsonDictionnary = message.body as? [String: Any]
         Self.logger.info("Received from WebApp \(jsonDictionnary ?? [:])")
         if let type = jsonDictionnary?["type"] as? String {
-            switch (type) {
+            switch type {
             case "provider":
                 if let postMessageDict = jsonDictionnary?[DefaultsKey.dataKey] as? [String: Any] {
                     if let action = postMessageDict[DefaultsKey.actionKey] as? String {
                         if let provider = postMessageDict[DefaultsKey.providerKey] as? String {
-                            switch (provider) {
+                            switch provider {
                             case Providers.push:
-                                switch(action) {
+                                switch action {
                                 case Actions.providerInit:
                                     pushProvider = PushNotificationProvider()
                                     pushProvider!.initialize(callback: { initalizeData in
@@ -266,7 +266,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.geofence:
-                                switch(action) {
+                                switch action {
                                 case Actions.providerInit:
                                     geofenceProvider = GeofenceProvider()
                                     let initializeData = geofenceProvider!.initialize()
@@ -295,7 +295,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.storage:
-                                switch(action) {
+                                switch action {
                                 case Actions.providerInit:
                                     let initializeData = storageProvider.initialize()
                                     sendData(data: initializeData)
@@ -319,7 +319,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.qr:
-                                switch (action) {
+                                switch action {
                                 case Actions.providerInit:
                                     qrProvider = QrScannerProvider()
                                     qrProvider!.initialize(callback: { initializeData in
@@ -344,7 +344,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.ble:
-                                switch (action) {
+                                switch action {
                                 case Actions.providerInit:
                                     bleProvider = BleProvider()
                                     bleProvider!.alertBluetoothCallback = {
@@ -394,7 +394,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     ORLogger.providers.error("Wrong action \(action) for \(provider)")
                                 }
                             case Providers.espprovision:
-                                switch(action) {
+                                switch action {
                                 case Actions.providerInit:
                                     if let baseUrl, let appUrl = URL(string: baseUrl),
 
@@ -544,7 +544,7 @@ extension ORViewcontroller: WKNavigationDelegate {
         if let err = error as? URLError {
 
             let httpCode: Int
-            switch(err.code) {
+            switch err.code {
             case .cannotFindHost:
                 httpCode = 404
             default:
@@ -566,7 +566,7 @@ extension ORViewcontroller: WKNavigationDelegate {
         if let err = error as? URLError {
 
             let httpCode: Int
-            switch(err.code) {
+            switch err.code {
             case .cannotFindHost:
                 httpCode = 404
             default:
@@ -595,12 +595,12 @@ extension ORViewcontroller: ConnectivityDelegate {
         DispatchQueue.main.async {
             ORLogger.network.info("connection changed \(isConnected)")
             if isConnected {
-                if (self.offlineVIewControllerPresented) {
+                if self.offlineVIewControllerPresented {
                     self.reloadWebView()
                     self.offlineViewController.dismiss(animated: true)
                 }
             } else {
-                if (!self.offlineVIewControllerPresented) {
+                if !self.offlineVIewControllerPresented {
                     self.showToast(message: "Check your internet connection")
                 }
             }
