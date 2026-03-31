@@ -20,9 +20,9 @@
 import UIKit
 
 extension UIViewController {
-    
-    func showToast(message : String, font: UIFont = UIFont.systemFont(ofSize: UIFont.labelFontSize)) {
-        
+
+    func showToast(message: String, font: UIFont = UIFont.systemFont(ofSize: UIFont.labelFontSize)) {
+
         let toastLabel = UILabel(frame: CGRect(x: 20, y: self.view.frame.size.height - 100, width: self.view.frame.size.width - 40, height: 35))
         toastLabel.backgroundColor = UIColor.lightGray.withAlphaComponent(0.6)
         toastLabel.textColor = UIColor.darkText

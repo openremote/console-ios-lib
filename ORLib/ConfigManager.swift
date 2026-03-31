@@ -35,22 +35,21 @@ public enum ConfigManagerError: Error {
 
 public typealias ApiManagerFactory = (String) throws -> ApiManager
 
-
 public class ConfigManager {
-    
+
     private var apiManagerFactory: ApiManagerFactory
     private var apiManager: ApiManager?
-    
-    public private(set) var globalAppInfos : [String:ORAppInfo] = [:] // app infos from the top level consoleConfig information
-    public private(set) var appInfos : [String:ORAppInfo] = [:] // app infos from each specific app info.json
+
+    public private(set) var globalAppInfos: [String: ORAppInfo] = [:] // app infos from the top level consoleConfig information
+    public private(set) var appInfos: [String: ORAppInfo] = [:] // app infos from each specific app info.json
 
     public private(set) var state = ConfigManagerState.selectDomain
-    
+
     public init(apiManagerFactory: @escaping ApiManagerFactory) {
         self.apiManagerFactory = apiManagerFactory
     }
 
-    public func setDomain(domain: String) async throws -> ConfigManagerState  {
+    public func setDomain(domain: String) async throws -> ConfigManagerState {
         switch state {
         case .selectDomain:
             let baseUrl = domain.buildBaseUrlFromDomain()
@@ -61,7 +60,7 @@ public class ConfigManager {
             guard let api = apiManager else {
                 throw ConfigManagerError.communicationError
             }
-            
+
             do {
                 let cc: ORConsoleConfig
                 do {
@@ -71,26 +70,26 @@ public class ConfigManager {
                     }
                 } catch ApiManagerError.notFound {
                     cc = ORConsoleConfig()
-                } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 { // 403 is for backwards compatibility of older manager
+                } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 {
+                    // 403 is for backwards compatibility of older manager
                     cc = ORConsoleConfig()
                 } catch ApiManagerError.communicationError(let httpStatusCode) {
                     throw ApiManagerError.communicationError(httpStatusCode)
                 }
-                
+
                 if let selectedApp = cc.app {
-                    
+
                     // TODO: we should potentially set the realms, either from console config or from specific app config
-                    
-                    
+
                     state = .selectRealm(baseUrl, selectedApp, nil)
                     return state
                 }
-                
+
                 if cc.showAppTextInput {
                     state = .selectApp(baseUrl, nil)
                     return state
                 }
-                
+
                 // allowedApps == nil -> get list of apps
                 if cc.allowedApps == nil || cc.allowedApps!.isEmpty {
                     do {
@@ -103,14 +102,15 @@ public class ConfigManager {
                         } else {
                             state = .selectRealm(baseUrl, "manager", nil )
                         }
-                        
+
                     } catch ApiManagerError.notFound {
                         if cc.showRealmTextInput {
                             state = .selectRealm(baseUrl, "manager", nil)
                         } else {
                             state = .complete(ProjectConfig(domain: baseUrl, app: "manager", realm: nil))
                         }
-                    } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 { // 403 is for backwards compatibility of older manager
+                    } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 {
+                        // 403 is for backwards compatibility of older manager
                         if cc.showRealmTextInput {
                             state = .selectRealm(baseUrl, "manager", nil)
                         } else {
@@ -135,11 +135,10 @@ public class ConfigManager {
                 .complete:
             throw ConfigManagerError.invalidState
         }
-        
     }
 
     private func filterPotentialApps(apiManager: ApiManager, potentialApps: [String]?) async -> [String]? {
-        var filteredApps : [String]?
+        var filteredApps: [String]?
         if let appNames = potentialApps {
             filteredApps = []
             for appName in appNames {
@@ -166,7 +165,7 @@ public class ConfigManager {
         }
         return filteredApps
     }
-    
+
     public func setApp(app: String) throws -> ConfigManagerState {
         switch state {
         case .selectDomain,
@@ -186,25 +185,24 @@ public class ConfigManager {
             return state
         }
     }
-    
+
     public func setRealm(realm: String?) throws -> ConfigManagerState {
         switch state {
         case .selectDomain,
                 .selectApp:
             throw ConfigManagerError.invalidState
         case .complete(let project):
-            
+
             // TODO: should set the providers on the project config
-            
+
             self.state = .complete(ProjectConfig(domain: project.baseURL, app: project.app, realm: realm))
         case .selectRealm(let baseURL, let app, _):
-            
+
             // TODO: should set the providers on the project config
-            
-            
+
             self.state = .complete(ProjectConfig(domain: baseURL, app: app, realm: realm))
         }
         return state
     }
-    
+
 }

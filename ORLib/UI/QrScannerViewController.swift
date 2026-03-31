@@ -21,7 +21,7 @@ import AVFoundation
 import UIKit
 
 public protocol QrScannerDelegate: AnyObject {
-    func codeScanned(_ codeContents:String?)
+    func codeScanned(_ codeContents: String?)
 }
 
 public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
@@ -74,7 +74,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
 
         subView.layer.addSublayer(previewLayer)
         view.addSubview(subView)
-        
+
         DispatchQueue.global(qos: .background).async {
             self.captureSession.startRunning()
         }

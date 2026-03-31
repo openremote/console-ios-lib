@@ -44,7 +44,6 @@ class ESPProvisionProvider: NSObject {
 
     private var apiURL = URL(string: "http://localhost:8080/api/master")!
 
-
     private var blePermissionsChecker: BLEPermissionsChecker?
 
     typealias DeviceProvisionFactory = () -> DeviceProvision
@@ -69,7 +68,7 @@ class ESPProvisionProvider: NSObject {
         super.init()
     }
 
-    public convenience init(apiURL: URL = URL(string:"http://localhost:8080/api/master")!) {
+    public convenience init(apiURL: URL = URL(string: "http://localhost:8080/api/master")!) {
         self.init()
         self.apiURL = apiURL
     }
@@ -223,14 +222,13 @@ class ESPProvisionProvider: NSObject {
     }
 }
 
-
 #if DEBUG
 // TODO: see https://stackoverflow.com/a/60267724 for improvement
 extension ESPProvisionProvider {
     public convenience init(searchDeviceTimeout: TimeInterval = 120, searchDeviceMaxIterations: Int = 25,
                             searchWifiTimeout: TimeInterval = 120, searchWifiMaxIterations: Int = 25,
                             deviceProvisionAPI: DeviceProvisionAPI? = nil, backendConnectionTimeout: TimeInterval? = nil,
-                            apiURL: URL = URL(string:"http://localhost:8080/api/master")!) {
+                            apiURL: URL = URL(string: "http://localhost:8080/api/master")!) {
         self.init()
         self.searchDeviceTimeout = searchDeviceTimeout
         self.searchDeviceMaxIterations = searchDeviceMaxIterations

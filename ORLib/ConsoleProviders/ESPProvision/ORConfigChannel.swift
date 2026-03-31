@@ -182,7 +182,7 @@ enum ORConfigChannelError: Error {
 }
 
 extension ORConfigChannelError: Equatable {
-    static func ==(lhs: ORConfigChannelError, rhs: ORConfigChannelError) -> Bool {
+    static func == (lhs: ORConfigChannelError, rhs: ORConfigChannelError) -> Bool {
         switch (lhs, rhs) {
            case (.invalidRequest(let leftReason), .invalidRequest(let rightReason)),
                 (.invalidResponse(let leftReason), .invalidResponse(let rightReason)):

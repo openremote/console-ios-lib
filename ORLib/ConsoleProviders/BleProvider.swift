@@ -22,10 +22,10 @@ import CoreBluetooth
 
 public class BleProvider: NSObject {
     public static let bluetoothDisabledKey = "bluetoothDisabled"
-    
+
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
     let version = "ble"
-    
+
     private var centralManager: CBCentralManager?
     private var devices: Set<CBPeripheral> = []
     private var scanDevicesCallback: (([String: Any]) -> (Void))?
@@ -39,13 +39,13 @@ public class BleProvider: NSObject {
     private var dataToSend: Data?
     private var sendDataIndex = 0
     private var maxDataLength = 182 // according to documentation
-    
-    var alertBluetoothCallback : (() -> (Void))?
-    
+
+    var alertBluetoothCallback: (() -> (Void))?
+
     public override init() {
         super.init()
     }
-    
+
     public func initialize() -> [String: Any] {
         return [
             DefaultsKey.actionKey: Actions.providerInit,
@@ -58,8 +58,8 @@ public class BleProvider: NSObject {
             DefaultsKey.disabledKey: userdefaults?.bool(forKey: BleProvider.bluetoothDisabledKey) ?? false
         ]
     }
-    
-    public func enable(callback:@escaping ([String: Any]) -> (Void)) {
+
+    public func enable(callback: @escaping ([String: Any]) -> (Void)) {
         userdefaults?.removeObject(forKey: BleProvider.bluetoothDisabledKey)
         userdefaults?.synchronize()
         callback([
@@ -69,7 +69,7 @@ public class BleProvider: NSObject {
             DefaultsKey.successKey: true
         ])
     }
-    
+
     public func disable() -> [String: Any] {
         if ((self.centralManager?.isScanning) != nil) {
             self.centralManager?.stopScan()
@@ -82,24 +82,23 @@ public class BleProvider: NSObject {
             DefaultsKey.providerKey: Providers.ble
         ]
     }
-    
-    public func scanForDevices(callback:@escaping ([String: Any]) -> (Void)) {
+
+    public func scanForDevices(callback: @escaping ([String: Any]) -> (Void)) {
         if centralManager == nil {
             centralManager = CBCentralManager()
             centralManager!.delegate = self
         }
         self.devices.removeAll()
         scanDevicesCallback = callback
-        
+
         if self.centralManager?.state == .poweredOn {
             self.startScan()
-        }
-        else if self.centralManager!.state == .poweredOff || self.centralManager!.state == .unauthorized {
+        } else if self.centralManager!.state == .poweredOff || self.centralManager!.state == .unauthorized {
             alertBluetoothCallback?()
         }
     }
-    
-    public func connectoToDevice(deviceId: String, callback:@escaping ([String: Any]) -> (Void)) {
+
+    public func connectoToDevice(deviceId: String, callback: @escaping ([String: Any]) -> (Void)) {
         connectToDeviceCallback = callback
         deviceServices.removeAll()
         deviceCharacteristics.removeAll()
@@ -107,25 +106,25 @@ public class BleProvider: NSObject {
             centralManager?.connect(device)
         }
     }
-    
-    public func disconnectFromDevice(callback:@escaping ([String: Any]) -> (Void)) {
+
+    public func disconnectFromDevice(callback: @escaping ([String: Any]) -> (Void)) {
         if let connectedDevice = self.connectedDevice {
             centralManager?.cancelPeripheralConnection(connectedDevice)
             callback([
-                DefaultsKey.actionKey : Actions.disconnectFromBleDevice,
-                DefaultsKey.providerKey : Providers.ble,
-                DefaultsKey.successKey : true
+                DefaultsKey.actionKey: Actions.disconnectFromBleDevice,
+                DefaultsKey.providerKey: Providers.ble,
+                DefaultsKey.successKey: true
             ])
         } else {
             callback([
-                DefaultsKey.actionKey : Actions.disconnectFromBleDevice,
-                DefaultsKey.providerKey : Providers.ble,
-                DefaultsKey.successKey : false
+                DefaultsKey.actionKey: Actions.disconnectFromBleDevice,
+                DefaultsKey.providerKey: Providers.ble,
+                DefaultsKey.successKey: false
             ])
         }
     }
-    
-    public func sendToDevice(attributeId: String, value: Data, callback:@escaping ([String: Any]) -> (Void)) {
+
+    public func sendToDevice(attributeId: String, value: Data, callback: @escaping ([String: Any]) -> (Void)) {
         if self.connectedDevice != nil {
             sendToDeviceCallback = callback
             if let characteristic = deviceCharacteristics.first(where: {$0.uuid.uuidString == attributeId}) {
@@ -139,18 +138,18 @@ public class BleProvider: NSObject {
             callback([DefaultsKey.actionKey: "SEND_TO_DEVICE", DefaultsKey.providerKey: "ble", DefaultsKey.successKey: false])
         }
     }
-    
+
     private func startScan() {
         self.centralManager!.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
         scanTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false, block: { timer in
             self.centralManager?.stopScan()
             self.scanDevicesCallback?([
-                DefaultsKey.actionKey : Actions.scanBleDevices,
-                DefaultsKey.providerKey : Providers.ble,
-                DefaultsKey.dataKey : ["devices" : self.devices.map {
+                DefaultsKey.actionKey: Actions.scanBleDevices,
+                DefaultsKey.providerKey: Providers.ble,
+                DefaultsKey.dataKey: ["devices": self.devices.map {
                     [
-                        "name" : $0.name ?? "Unknown",
-                        "address" : $0.identifier.uuidString
+                        "name": $0.name ?? "Unknown",
+                        "address": $0.identifier.uuidString
                     ]
                 }]
             ])
@@ -158,8 +157,8 @@ public class BleProvider: NSObject {
     }
 }
 
-extension BleProvider : CBCentralManagerDelegate {
-    
+extension BleProvider: CBCentralManagerDelegate {
+
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch central.state {
         case .poweredOn:
@@ -189,32 +188,32 @@ extension BleProvider : CBCentralManagerDelegate {
             break
         }
     }
-    
-    public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+
+    public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         devices.insert(peripheral)
     }
-    
+
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         self.connectedDevice = peripheral
         peripheral.delegate = self
         peripheral.discoverServices(nil)
     }
-    
+
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         connectToDeviceCallback?([
-            DefaultsKey.actionKey : Actions.connectToBleDevice,
-            DefaultsKey.providerKey : Providers.ble,
-            DefaultsKey.successKey : false
+            DefaultsKey.actionKey: Actions.connectToBleDevice,
+            DefaultsKey.providerKey: Providers.ble,
+            DefaultsKey.successKey: false
         ])
     }
-    
+
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         self.connectedDevice = nil
     }
 }
 
 extension BleProvider: CBPeripheralDelegate {
-    
+
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard let services = peripheral.services else {
             return
@@ -224,7 +223,7 @@ extension BleProvider: CBPeripheralDelegate {
             peripheral.discoverCharacteristics(nil, for: service)
         }
     }
-    
+
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard let characteristics = service.characteristics else {
             return
@@ -233,32 +232,32 @@ extension BleProvider: CBPeripheralDelegate {
             deviceServices.remove(at: index)
         }
         deviceCharacteristics.append(contentsOf: characteristics)
-        
+
         for characteristic in characteristics.filter({ $0.properties.contains(.read)}) {
             self.connectedDevice?.readValue(for: characteristic)
         }
     }
-    
+
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         if deviceServices.isEmpty {
             connectToDeviceCallback?([
-                DefaultsKey.actionKey : Actions.connectToBleDevice,
-                DefaultsKey.providerKey : Providers.ble,
-                DefaultsKey.successKey : true,
+                DefaultsKey.actionKey: Actions.connectToBleDevice,
+                DefaultsKey.providerKey: Providers.ble,
+                DefaultsKey.successKey: true,
                 DefaultsKey.dataKey: [
-                    "attributes" : deviceCharacteristics.map { characteristic in
+                    "attributes": deviceCharacteristics.map { characteristic in
                         [
                             "attributeId": characteristic.uuid.uuidString,
                             "isReadable": characteristic.properties.contains(.read),
                             "isWritable": characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse),
                             "value": characteristic.value != nil ? decodeValue(from: characteristic.value!) : nil
-                        ] as [String : Any?]
+                        ] as [String: Any?]
                     }
                 ]
             ])
         }
     }
-    
+
     public func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
         if let characteristic = selectedCharacteristic {
             if let data = dataToSend {
@@ -268,7 +267,7 @@ extension BleProvider: CBPeripheralDelegate {
             }
         }
     }
-    
+
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if error != nil {
             sendToDeviceCallback?([DefaultsKey.actionKey: "SEND_TO_DEVICE", DefaultsKey.providerKey: "ble", DefaultsKey.successKey: false])
@@ -282,28 +281,28 @@ extension BleProvider: CBPeripheralDelegate {
             }
         }
     }
-    
+
     func sendData(characteristic: CBCharacteristic) {
         if let data = dataToSend {
             if sendDataIndex >= data.count {
                 // All data has been sent
                 return
             }
-            
+
             var sending = true
-            
+
             while sending {
                 var amountToSend = data.count - sendDataIndex
-                
+
                 if amountToSend > maxDataLength {
                     amountToSend = maxDataLength
                 }
-                
+
                 let chunk = data.subdata(in: sendDataIndex..<sendDataIndex+amountToSend)
                 self.connectedDevice?.writeValue(chunk, for: characteristic, type: characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse)
-                
+
                 sendDataIndex += amountToSend
-                
+
                 if sendDataIndex >= data.count {
                     // All data has been sent
                     sending = false
@@ -311,9 +310,9 @@ extension BleProvider: CBPeripheralDelegate {
             }
         }
     }
-    
+
     func decodeValue(from data: Data) -> Any {
-       
+
             if let string = String(data: data, encoding: .utf8) {
                 let escapedJsonString = string.replacingOccurrences(of: "\\", with: "\\\\")
                                                    .replacingOccurrences(of: "\"", with: "\\\"")
@@ -322,6 +321,5 @@ extension BleProvider: CBPeripheralDelegate {
             } else {
                 return data
             }
-       
     }
 }

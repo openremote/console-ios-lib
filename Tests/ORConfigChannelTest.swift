@@ -71,7 +71,7 @@ struct ORConfigChannelTest {
 
     @Test func noResponseData() async throws {
         var channel = ORConfigChannel(device: deviceMock)
-        
+
         var deviceInfoRequest = Request()
         deviceInfoRequest.body = .deviceInfo(Request.DeviceInfo())
 

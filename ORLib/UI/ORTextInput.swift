@@ -129,7 +129,7 @@ public class ORTextInput: UIView {
     private func updatePlaceholderPosition(animated: Bool) {
         let isTextInputEmpty = textInput.text?.isEmpty ?? true
         let isFocused = textInput.isFirstResponder
-        
+
         let targetFontSize = isFocused || !isTextInputEmpty ? placeholderSmallFontSize : placeholderDefaultFontSize
         let targetY = isFocused || !isTextInputEmpty ? -textInput.frame.height / 2 : 0
 

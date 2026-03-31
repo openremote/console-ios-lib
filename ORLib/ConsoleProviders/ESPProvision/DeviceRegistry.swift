@@ -30,7 +30,6 @@ protocol ORESPProvisionManager {
 struct EspressifProvisionManager: ORESPProvisionManager {
     var provisionManager: ESPProvisionManager = ESPProvisionManager.shared
 
-
     public func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity = .secure) async throws -> [ORESPDevice] {
         return try await withCheckedThrowingContinuation { continuation in
             // We want to protect ourself against multiple resume of the continuation
@@ -86,7 +85,7 @@ class DeviceRegistry {
     }
 
     private var devices: [DiscoveredDevice] = []
-    private var devicesIndex: [UUID:DiscoveredDevice] = [:]
+    private var devicesIndex: [UUID: DiscoveredDevice] = [:]
 
     // TODO: check if here or some place else or how to be set ?
     var provisionManager: ORESPProvisionManager?
@@ -212,7 +211,7 @@ class DeviceRegistry {
         hasher.combine(device.name)
     }
 
-    static func ==(lhs: DiscoveredDevice, rhs: DiscoveredDevice) -> Bool {
+    static func == (lhs: DiscoveredDevice, rhs: DiscoveredDevice) -> Bool {
         lhs.device.name == rhs.device.name
     }
 

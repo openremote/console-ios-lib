@@ -23,12 +23,12 @@ import os
 public class ORNotificationResource: NSObject, URLSessionDelegate {
 
     public static let sharedInstance = ORNotificationResource()
-    
+
     private override init() {
         super.init()
     }
 
-    public func notificationDelivered(notificationId : Int64, targetId : String) {
+    public func notificationDelivered(notificationId: Int64, targetId: String) {
         if let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement),
            let host = userdefaults.string(forKey: DefaultsKey.hostKey),
            let realm = userdefaults.string(forKey: DefaultsKey.realmKey) {
@@ -37,13 +37,13 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
             let request = NSMutableURLRequest(url: urlRequest)
             request.httpMethod = "PUT"
             let sessionConfiguration = URLSessionConfiguration.default
-            let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue : nil)
+            let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
             let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
                 DispatchQueue.main.async {
                     if (error != nil) {
                         NSLog("error %@", (error! as NSError).localizedDescription)
-                        let error = NSError(domain: "", code: 0, userInfo:  [
-                            NSLocalizedDescriptionKey :  NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
+                        let error = NSError(domain: "", code: 0, userInfo: [
+                            NSLocalizedDescriptionKey: NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
                         ])
                         ORLogger.network.error("\(error)")
                     }
@@ -53,7 +53,7 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
         }
     }
 
-    public func notificationAcknowledged(notificationId : Int64, targetId : String, acknowledgement: String) {
+    public func notificationAcknowledged(notificationId: Int64, targetId: String, acknowledgement: String) {
         if let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement),
            let host = userdefaults.string(forKey: DefaultsKey.hostKey),
            let realm = userdefaults.string(forKey: DefaultsKey.realmKey) {
@@ -67,13 +67,13 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
                 request.httpBody = json
             }
             let sessionConfiguration = URLSessionConfiguration.default
-            let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue : nil)
+            let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
             let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
                 DispatchQueue.main.async {
                     if (error != nil) {
                         NSLog("error %@", (error! as NSError).localizedDescription)
-                        let error = NSError(domain: "", code: 0, userInfo:  [
-                            NSLocalizedDescriptionKey :  NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
+                        let error = NSError(domain: "", code: 0, userInfo: [
+                            NSLocalizedDescriptionKey: NSLocalizedString("ErrorCallingAPI", value: "Could not get data", comment: "")
                         ])
                         ORLogger.network.error("\(error)")
                     }

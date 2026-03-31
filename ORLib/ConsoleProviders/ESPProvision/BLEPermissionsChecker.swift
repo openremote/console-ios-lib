@@ -69,4 +69,3 @@ extension BLEPermissionsChecker: CBCentralManagerDelegate {
         continuation = nil
     }
 }
-

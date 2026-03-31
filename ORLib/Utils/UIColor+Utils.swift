@@ -38,7 +38,7 @@ extension UIColor {
         var chars = Array(hexaRGBA.hasPrefix("#") ? hexaRGBA.dropFirst() : hexaRGBA[...])
         switch chars.count {
         case 3: chars = chars.flatMap { [$0, $0] }; fallthrough
-        case 6: chars.append(contentsOf: ["F","F"])
+        case 6: chars.append(contentsOf: ["F", "F"])
         case 8: break
         default: return nil
         }
@@ -52,7 +52,7 @@ extension UIColor {
         var chars = Array(hexaARGB.hasPrefix("#") ? hexaARGB.dropFirst() : hexaARGB[...])
         switch chars.count {
         case 3: chars = chars.flatMap { [$0, $0] }; fallthrough
-        case 6: chars.append(contentsOf: ["F","F"])
+        case 6: chars.append(contentsOf: ["F", "F"])
         case 8: break
         default: return nil
         }

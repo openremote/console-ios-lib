@@ -23,7 +23,7 @@ import UIKit
 import WebKit
 import os
 
-open class ORViewcontroller : UIViewController {
+open class ORViewcontroller: UIViewController {
     private static let logger = Logger(
            subsystem: Bundle.main.bundleIdentifier!,
            category: String(describing: ORViewcontroller.self)
@@ -33,12 +33,12 @@ open class ORViewcontroller : UIViewController {
         ViewControllerFactory.createOfflineViewController()
     }()
     var offlineVIewControllerPresented = false
-    
-    var data : Data?
-    var myWebView : WKWebView?
+
+    var data: Data?
+    var myWebView: WKWebView?
     var webProgressBar: UIProgressView?
-    var defaults : UserDefaults?
-    var webCfg : WKWebViewConfiguration?
+    var defaults: UserDefaults?
+    var webCfg: WKWebViewConfiguration?
     var connectivityChecker: ConnectivityChecker?
     public var geofenceProvider: GeofenceProvider?
     public var pushProvider: PushNotificationProvider?
@@ -50,27 +50,27 @@ open class ORViewcontroller : UIViewController {
     var espProvisionProvider: ESPProvisionProvider?
 
     public var baseUrl: String?
-    
+
     public var targetUrl: String?
-    
+
     deinit {
         self.connectivityChecker?.stopMonitoring()
     }
-    
+
     open override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor.white
         self.configureAccess()
-        
+
         self.offlineViewController.modalPresentationStyle = .fullScreen
         self.connectivityChecker = ConnectivityChecker()
         self.connectivityChecker!.delegate = self
         self.connectivityChecker!.startMonitoring()
     }
-    
+
     open override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
         if let targetUrl = targetUrl {
             if let urlString = targetUrl.stringByURLEncoding() {
                 if let url = URL(string: urlString) {
@@ -83,7 +83,7 @@ open class ORViewcontroller : UIViewController {
             self.offlineVIewControllerPresented = true
         }
     }
-    
+
     func sendData(data: [String: Any?]) {
         if let theJSONData = try? JSONSerialization.data(
             withJSONObject: data,
@@ -103,7 +103,7 @@ open class ORViewcontroller : UIViewController {
             }
         }
     }
-    
+
     func configureAccess() {
         if let currentWebView = myWebView {
             currentWebView.removeFromSuperview()
@@ -111,17 +111,17 @@ open class ORViewcontroller : UIViewController {
         if let currentWebProgressBar = webProgressBar {
             currentWebProgressBar.removeFromSuperview()
         }
-        
-        let webCfg:WKWebViewConfiguration = WKWebViewConfiguration()
-        let userController:WKUserContentController = WKUserContentController()
-        
+
+        let webCfg: WKWebViewConfiguration = WKWebViewConfiguration()
+        let userController: WKUserContentController = WKUserContentController()
+
         userController.add(self, name: "int")
-        
+
         let execTemplate: String? = ""
         let userScript: WKUserScript = WKUserScript(source: execTemplate!, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         userController.addUserScript(userScript)
-        
-        webCfg.userContentController = userController;
+
+        webCfg.userContentController = userController
         let sbHeight: CGFloat
 
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
@@ -132,38 +132,37 @@ open class ORViewcontroller : UIViewController {
             sbHeight = 0
         }
 
-        
         webCfg.allowsInlineMediaPlayback = true
         let webFrame = CGRect(x: 0, y: sbHeight, width: view.frame.size.width, height: view.frame.size.height - sbHeight)
         myWebView = WKWebView(frame: webFrame, configuration: webCfg)
-        myWebView?.autoresizingMask = [.flexibleWidth, .flexibleHeight];
-        myWebView?.navigationDelegate = self;
-        //add observer to get estimated progress value
-        myWebView?.addObserver(self, forKeyPath: "estimatedProgress", options: .new, context: nil);
+        myWebView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        myWebView?.navigationDelegate = self
+        // add observer to get estimated progress value
+        myWebView?.addObserver(self, forKeyPath: "estimatedProgress", options: .new, context: nil)
         myWebView?.allowsBackForwardNavigationGestures = true
         myWebView?.scrollView.contentInsetAdjustmentBehavior = .never
-        
+
         webProgressBar = UIProgressView(progressViewStyle: .bar)
         webProgressBar?.progressTintColor = UIColor(named: "or_green")
-        
+
         if #available(macOS 13.3, iOS 16.4, tvOS 16.4, *) {
             myWebView?.isInspectable = true
         }
-        
+
         view.addSubview(myWebView!)
         view.addSubview(webProgressBar!)
         view.bringSubviewToFront(webProgressBar!)
-        
+
         webProgressBar?.translatesAutoresizingMaskIntoConstraints = false
         webProgressBar?.leadingAnchor.constraint(equalTo: myWebView!.leadingAnchor).isActive = true
         webProgressBar?.trailingAnchor.constraint(equalTo: myWebView!.trailingAnchor).isActive = true
         webProgressBar?.topAnchor.constraint(equalTo: myWebView!.topAnchor, constant: -2).isActive = true
         webProgressBar?.heightAnchor.constraint(equalToConstant: 2).isActive = true
     }
-    
+
     func clearWebBackForwardList() {
         if let webView = myWebView {
-            if webView.backForwardList.backList.count > 1 { //Check if there's more than one item before the current page in order to prevent an endless loop
+            if webView.backForwardList.backList.count > 1 { // Check if there's more than one item before the current page in order to prevent an endless loop
                 if let currentUrl = webView.url {
                     // the backForwardList of WKWebView is readonly, so need to create a new webview and set the currentUrl
                     configureAccess()
@@ -172,15 +171,15 @@ open class ORViewcontroller : UIViewController {
             }
         }
     }
-    
-    public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+
+    public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "estimatedProgress" {
             if let webView = myWebView {
-                webProgressBar?.progress = Float(webView.estimatedProgress);
+                webProgressBar?.progress = Float(webView.estimatedProgress)
             }
         }
     }
-    
+
     func showProgressView() {
         if let progressBar = webProgressBar {
             UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseInOut, animations: {
@@ -188,7 +187,7 @@ open class ORViewcontroller : UIViewController {
             }, completion: nil)
         }
     }
-    
+
     func hideProgressView() {
         if let progressBar = webProgressBar {
             UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseInOut, animations: {
@@ -196,25 +195,25 @@ open class ORViewcontroller : UIViewController {
             }, completion: nil)
         }
     }
-    
-    public func loadURL(url : URL) {
-        _ = self.myWebView?.load(URLRequest(url:url))
+
+    public func loadURL(url: URL) {
+        _ = self.myWebView?.load(URLRequest(url: url))
     }
-    
+
     internal func handleError(errorCode: Int, description: String, failingUrl: String, isForMainFrame: Bool) {
         ORLogger.network.error("Error requesting '\(failingUrl)': \(errorCode) (\(description))")
 
         if !self.offlineVIewControllerPresented {
             let alertView = UIAlertController(title: "Error", message: "Error requesting '\(failingUrl)': \(errorCode) (\(description))", preferredStyle: .alert)
-            
+
             if self.presentingViewController != nil {
-                alertView.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in self.dismiss(animated: true)} ))
+                alertView.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in self.dismiss(animated: true)}))
             } else {
                 alertView.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
             }
             self.present(alertView, animated: true, completion: nil)
         }
-        
+
         /*
          if (false) {
          //TODO need to have case to return to home url of config or go back to wizard to setup project enviroment
@@ -222,7 +221,7 @@ open class ORViewcontroller : UIViewController {
          } else {
          if self.presentingViewController != nil {
          self.dismiss(animated: true) {
-         
+
          // TODO: this original code is causing error
          // self.presentingViewController!.present(alertView, animated: true, completion: nil)
          }
@@ -237,14 +236,14 @@ open class ORViewcontroller : UIViewController {
 extension ORViewcontroller: WKScriptMessageHandler {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        let jsonDictionnary = message.body as? [String : Any]
+        let jsonDictionnary = message.body as? [String: Any]
         Self.logger.info("Received from WebApp \(jsonDictionnary ?? [:])")
         if let type = jsonDictionnary?["type"] as? String {
             switch (type) {
             case "provider":
                 if let postMessageDict = jsonDictionnary?[DefaultsKey.dataKey] as? [String: Any] {
                     if let action = postMessageDict[DefaultsKey.actionKey] as? String {
-                        if let provider = postMessageDict[DefaultsKey.providerKey] as? String  {
+                        if let provider = postMessageDict[DefaultsKey.providerKey] as? String {
                             switch (provider) {
                             case Providers.push:
                                 switch(action) {
@@ -274,11 +273,11 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     sendData(data: initializeData)
                                 case Actions.providerEnable:
                                     let consoleId = postMessageDict[GeofenceProvider.consoleIdKey] as? String
-                                    if let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement){
+                                    if let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement) {
                                         let host = userdefaults.string(forKey: DefaultsKey.hostKey) ?? ""
                                         let realm = userdefaults.string(forKey: DefaultsKey.realmKey) ?? ""
                                         let baseUrl = host.isEmpty ? "" : host.appending("/api/\(realm)")
-                                        geofenceProvider?.enable(baseUrl: baseUrl, consoleId: consoleId,  callback: { enableData in
+                                        geofenceProvider?.enable(baseUrl: baseUrl, consoleId: consoleId, callback: { enableData in
                                             self.sendData(data: enableData)
                                             DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(5)) {
                                                 self.geofenceProvider?.fetchGeofences()
@@ -378,7 +377,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         }
                                     }
                                 case Actions.disconnectFromBleDevice:
-                                    bleProvider?.disconnectFromDevice() {disconnectData in
+                                    bleProvider?.disconnectFromDevice() { disconnectData in
                                         self.sendData(data: disconnectData)
                                     }
                                 case Actions.sendToBleDevice:
@@ -484,11 +483,11 @@ extension ORViewcontroller: WKScriptMessageHandler {
 }
 
 extension ORViewcontroller: WKNavigationDelegate {
-    
+
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         showProgressView()
     }
-    
+
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if (navigationAction.request.url?.absoluteString.starts(with: "webbrowser"))! {
             if let url = navigationAction.request.url, var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
@@ -498,9 +497,9 @@ extension ORViewcontroller: WKNavigationDelegate {
                 }
             }
             decisionHandler(.cancel)
-        }  else {
+        } else {
             let app = UIApplication.shared
-            if navigationAction.targetFrame == nil, let url = navigationAction.request.url{
+            if navigationAction.targetFrame == nil, let url = navigationAction.request.url {
                 if app.canOpenURL(url) {
                     app.open(url)
                     decisionHandler(.cancel)
@@ -516,18 +515,18 @@ extension ORViewcontroller: WKNavigationDelegate {
             }
         }
     }
-    
+
     public func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         if let response = navigationResponse.response as? HTTPURLResponse {
             if response.statusCode != 200 && response.statusCode != 204 {
                 decisionHandler(.cancel)
-                
+
                 if 400...499 ~= response.statusCode {
                     if let baseUrl = self.baseUrl {
                         webView.clearCookies(for: baseUrl, completion: nil)
                     }
                 }
-                
+
                 handleError(errorCode: response.statusCode, description: "Error in request", failingUrl: response.url?.absoluteString ?? "", isForMainFrame: true)
                 return
             }
@@ -540,11 +539,11 @@ extension ORViewcontroller: WKNavigationDelegate {
             decisionHandler(.allow)
         }
     }
-    
+
     public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         NSLog("error %@", error.localizedDescription)
         if let err = error as? URLError {
-            
+
             let httpCode: Int
             switch(err.code) {
             case .cannotFindHost:
@@ -552,21 +551,21 @@ extension ORViewcontroller: WKNavigationDelegate {
             default:
                 httpCode = 500
             }
-            
+
             handleError(errorCode: httpCode, description: err.localizedDescription, failingUrl: err.failureURLString ?? "", isForMainFrame: true)
         } else {
             handleError(errorCode: 0, description: error.localizedDescription, failingUrl: webView.url?.absoluteString ?? "", isForMainFrame: true)
         }
     }
-    
+
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         hideProgressView()
     }
-    
+
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         NSLog("error %@", error.localizedDescription)
         if let err = error as? URLError {
-            
+
             let httpCode: Int
             switch(err.code) {
             case .cannotFindHost:
@@ -574,17 +573,17 @@ extension ORViewcontroller: WKNavigationDelegate {
             default:
                 httpCode = 500
             }
-            
+
             handleError(errorCode: httpCode, description: err.localizedDescription, failingUrl: err.failureURLString ?? "", isForMainFrame: true)
         } else {
             handleError(errorCode: 0, description: error.localizedDescription, failingUrl: webView.url?.absoluteString ?? "", isForMainFrame: true)
         }
         hideProgressView()
     }
-    
+
     func reloadWebView() {
         var url = self.myWebView?.url
-            
+
         if url?.absoluteString == "about:blank" || url == nil {
             url = URL(string: baseUrl!)
         }

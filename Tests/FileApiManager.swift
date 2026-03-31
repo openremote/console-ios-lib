@@ -26,7 +26,7 @@ class FileApiManager: ApiManager {
     let decoder = JSONDecoder()
 
     private var fixture: Fixture
-    
+
     public init(baseUrl: String) {
         let pattern = #"https://(?<domain>.*)\.openremote\.app"#
         do {
@@ -54,7 +54,7 @@ class FileApiManager: ApiManager {
         fixture = Fixture()
     }
 
-    
+
     func getConsoleConfig(callback: ResponseBlock<ORConsoleConfig>?) {
     }
 
@@ -67,7 +67,7 @@ class FileApiManager: ApiManager {
 
     public func getApps(callback: ResponseBlock<[String]>?) {
     }
-    
+
     public func getApps() async throws -> [String]? {
         if let returnCode = fixture.appsReturnCode {
             throw ApiManagerError.communicationError(returnCode)
