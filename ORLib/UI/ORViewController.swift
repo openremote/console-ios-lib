@@ -117,8 +117,8 @@ open class ORViewcontroller : UIViewController {
         
         userController.add(self, name: "int")
         
-        let exec_template : String? = ""
-        let userScript:WKUserScript = WKUserScript(source: exec_template!, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        let execTemplate: String? = ""
+        let userScript: WKUserScript = WKUserScript(source: execTemplate!, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         userController.addUserScript(userScript)
         
         webCfg.userContentController = userController;
@@ -235,6 +235,7 @@ open class ORViewcontroller : UIViewController {
 }
 
 extension ORViewcontroller: WKScriptMessageHandler {
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let jsonDictionnary = message.body as? [String : Any]
         Self.logger.info("Received from WebApp \(jsonDictionnary ?? [:])")
