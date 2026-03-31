@@ -29,7 +29,7 @@ public class ErrorManager: NSObject {
             topWindow.rootViewController = UIViewController()
             topWindow.windowLevel = UIWindow.Level.alert + 1
             let alertVC = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: UIAlertController.Style.alert)
-            let alertAction = UIAlertAction(title: "Done", style: .cancel) { (action) in
+            let alertAction = UIAlertAction(title: "Done", style: .cancel) { _ in
                 topWindow.rootViewController?.presentedViewController?.dismiss(animated: true, completion: nil)
                 topWindow.isHidden = true
             }
