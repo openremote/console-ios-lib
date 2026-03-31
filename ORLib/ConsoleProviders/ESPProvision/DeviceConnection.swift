@@ -69,7 +69,6 @@ class DeviceConnection {
                     self.bleStatus = .connected
                     self.configChannel = ORConfigChannel(device: self.device!)
                     self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connected)
-                    break
                 case .failedToConnect(let error):
                     self.bleStatus = .disconnected
                     self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connectionError,
@@ -78,7 +77,6 @@ class DeviceConnection {
                     self.bleStatus = .disconnected
                     self.configChannel = nil
                     self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.disconnected)
-                    break
                 }
             }
         } else {
