@@ -97,7 +97,7 @@ public class HttpApiManager: NSObject, ApiManager {
         urlRequest.httpMethod = HttpMethod.get.rawValue
 
         return try await withCheckedThrowingContinuation { continuation in
-            session.dataTask(with: urlRequest, completionHandler: { responseData, response, error in
+            session.dataTask(with: urlRequest, completionHandler: { responseData, response, _ in
                 let httpStatusCode = (response as? HTTPURLResponse)?.statusCode ?? 500
 
                 if httpStatusCode == 404 {
@@ -163,7 +163,7 @@ public class HttpApiManager: NSObject, ApiManager {
         urlRequest.httpMethod = HttpMethod.get.rawValue
 
         return try await withCheckedThrowingContinuation { continuation in
-            session.dataTask(with: urlRequest, completionHandler: { responseData, response, error in
+            session.dataTask(with: urlRequest, completionHandler: { responseData, response, _ in
                 let httpStatusCode = (response as? HTTPURLResponse)?.statusCode ?? 500
 
                 if httpStatusCode == 404 {
@@ -197,7 +197,7 @@ public class HttpApiManager: NSObject, ApiManager {
         urlRequest.httpMethod = HttpMethod.get.rawValue
 
         return try await withCheckedThrowingContinuation { continuation in
-            session.dataTask(with: urlRequest, completionHandler: { responseData, response, error in
+            session.dataTask(with: urlRequest, completionHandler: { responseData, response, _ in
                 let httpStatusCode = (response as? HTTPURLResponse)?.statusCode ?? 500
 
                 if httpStatusCode == 404 {

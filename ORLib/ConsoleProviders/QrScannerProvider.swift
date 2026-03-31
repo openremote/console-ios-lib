@@ -170,7 +170,7 @@ public class QrScannerProvider: NSObject {
                     let alertController = UIAlertController(title: "Camera permission needed",
                                                             message: "In order to scan QR codes, access to the camera is needed. Would you like to enable it now?",
                                                             preferredStyle: .alert)
-                    alertController.addAction(UIAlertAction(title: "Yes", style: .default, handler: { alertAction in
+                    alertController.addAction(UIAlertAction(title: "Yes", style: .default, handler: { _ in
                         guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
                             return
                         }

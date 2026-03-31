@@ -141,7 +141,7 @@ public class BleProvider: NSObject {
 
     private func startScan() {
         self.centralManager!.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
-        scanTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false, block: { timer in
+        scanTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false, block: { _ in
             self.centralManager?.stopScan()
             self.scanDevicesCallback?([
                 DefaultsKey.actionKey: Actions.scanBleDevices,

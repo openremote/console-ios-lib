@@ -94,7 +94,7 @@ open class ORViewcontroller: UIViewController {
 
                 let returnMessage = "OpenRemoteConsole._handleProviderResponse('\(theJSONText.escapeForJavaScript())')"
                 DispatchQueue.main.async {
-                    self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (any, error) in
+                    self.myWebView?.evaluateJavaScript("\(returnMessage)", completionHandler: { (_, error) in
                         if let err = error {
                             ORLogger.webview.error("\(err)")
                         }
@@ -349,7 +349,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     bleProvider = BleProvider()
                                     bleProvider!.alertBluetoothCallback = {
                                         let alertController = UIAlertController(title: "Bluetooth disabled", message: "Please turn on bluetooth to scan for devices", preferredStyle: .alert)
-                                        alertController.addAction(UIAlertAction(title: "OK", style: .default) { alertAction in
+                                        alertController.addAction(UIAlertAction(title: "OK", style: .default) { _ in
                                             let url = URL(string: UIApplication.openSettingsURLString)
                                             let app = UIApplication.shared
                                             app.open(url!, options: [:])

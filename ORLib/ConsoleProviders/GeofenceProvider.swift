@@ -158,7 +158,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
             tkRequest.httpMethod = "GET"
             let sessionConfiguration = URLSessionConfiguration.default
             let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
-            let req = session.dataTask(with: tkRequest as URLRequest, completionHandler: { (data, response, error) in
+            let req = session.dataTask(with: tkRequest as URLRequest, completionHandler: { (data, _, error) in
                 if (data != nil) {
                     guard let geofences = try? JSONDecoder().decode([GeofenceDefinition].self, from: data!) else {
                         callback?([])
@@ -259,7 +259,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
             let semaphore = DispatchSemaphore(value: 0)
             let sessionConfiguration = URLSessionConfiguration.default
             let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
-            let req = session.dataTask(with: request as URLRequest, completionHandler: { (responseData, response, error) in
+            let req = session.dataTask(with: request as URLRequest, completionHandler: { (_, response, error) in
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 204 {
                     NSLog("%@", "sendLocation succeded with data: \(String(describing: data))")
                     succes = true

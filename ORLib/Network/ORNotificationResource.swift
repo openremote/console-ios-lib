@@ -38,7 +38,7 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
             request.httpMethod = "PUT"
             let sessionConfiguration = URLSessionConfiguration.default
             let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
-            let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
+            let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (_, _, error) in
                 DispatchQueue.main.async {
                     if (error != nil) {
                         NSLog("error %@", (error! as NSError).localizedDescription)
@@ -68,7 +68,7 @@ public class ORNotificationResource: NSObject, URLSessionDelegate {
             }
             let sessionConfiguration = URLSessionConfiguration.default
             let session = URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
-            let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) in
+            let reqDataTask = session.dataTask(with: request as URLRequest, completionHandler: { (_, _, error) in
                 DispatchQueue.main.async {
                     if (error != nil) {
                         NSLog("error %@", (error! as NSError).localizedDescription)
