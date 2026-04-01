@@ -128,7 +128,8 @@ public class BleProvider: NSObject {
         if self.connectedDevice != nil {
             sendToDeviceCallback = callback
             if let characteristic = deviceCharacteristics.first(where: {$0.uuid.uuidString == attributeId}) {
-                self.maxDataLength = self.connectedDevice!.maximumWriteValueLength(for: characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse)
+                self.maxDataLength = self.connectedDevice!.maximumWriteValueLength(
+                    for: characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse)
                 selectedCharacteristic = characteristic
                 dataToSend = value
                 sendDataIndex = 0
