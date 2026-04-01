@@ -36,10 +36,10 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
     var enableCallback: (([String: Any]) -> Void)?
 
     public var baseURL: String = ""
-    public var consoleId: String? = nil
+    public var consoleId: String?
 
-    private var enteredLocation: (String, [String: Any]?)? = nil
-    private var exitedLocation: (String, [String: Any]?)? = nil
+    private var enteredLocation: (String, [String: Any]?)?
+    private var exitedLocation: (String, [String: Any]?)?
     private var sendQueued = false
 
     public override init() {
