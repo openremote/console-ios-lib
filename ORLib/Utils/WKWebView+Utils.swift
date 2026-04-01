@@ -60,7 +60,7 @@ extension WKWebView {
 
                 for (_, cookieConfig) in mergedCookie {
                     // swiftlint:disable:next force_cast
-                    let cookie = cookieConfig as! Dictionary<String, Any>
+                    let cookie = cookieConfig as! [String: Any]
 
                     var expire: Any?
 
