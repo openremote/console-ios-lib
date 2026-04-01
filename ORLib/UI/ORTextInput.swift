@@ -63,7 +63,7 @@ public class ORTextInput: UIView {
     }
 
     private func setupInputView() {
-        if let _ = self.viewWithTag(1) { return }
+        if self.viewWithTag(1) != nil { return }
 
         textInput = UITextField()
         textInput.tag = 1
