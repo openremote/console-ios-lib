@@ -27,10 +27,10 @@ public class QrScannerProvider: NSObject {
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
     let version = "qr"
 
-    var scannedCallback: (([String: Any]) -> (Void))?
+    var scannedCallback: (([String: Any]) -> Void)?
     var scanner: QrScannerViewController?
 
-    public func initialize(callback: @escaping ([String: Any?]) -> (Void)) {
+    public func initialize(callback: @escaping ([String: Any?]) -> Void) {
         let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
 
         switch cameraAuthorizationStatus {
@@ -72,7 +72,7 @@ public class QrScannerProvider: NSObject {
         }
     }
 
-    public func enable(callback: @escaping ([String: Any?]) -> (Void)) {
+    public func enable(callback: @escaping ([String: Any?]) -> Void) {
         userdefaults?.removeObject(forKey: QrScannerProvider.cameraDisabledKey)
         userdefaults?.synchronize()
         let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)

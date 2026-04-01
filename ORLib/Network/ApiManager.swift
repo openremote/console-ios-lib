@@ -19,7 +19,7 @@
 
 import Foundation
 
-public typealias ResponseBlock<T: Codable> = (_ statusCode: Int, _ object: T?, _ error: Error?) -> ()
+public typealias ResponseBlock<T: Codable> = (_ statusCode: Int, _ object: T?, _ error: Error?) -> Void
 
 public enum ApiManagerError: Error {
     case invalidUrl
