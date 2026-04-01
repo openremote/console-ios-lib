@@ -348,7 +348,9 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                 case Actions.providerInit:
                                     bleProvider = BleProvider()
                                     bleProvider!.alertBluetoothCallback = {
-                                        let alertController = UIAlertController(title: "Bluetooth disabled", message: "Please turn on bluetooth to scan for devices", preferredStyle: .alert)
+                                        let alertController = UIAlertController(title: "Bluetooth disabled",
+                                                                                message: "Please turn on bluetooth to scan for devices",
+                                                                                preferredStyle: .alert)
                                         alertController.addAction(UIAlertAction(title: "OK", style: .default) { _ in
                                             let url = URL(string: UIApplication.openSettingsURLString)
                                             let app = UIApplication.shared
