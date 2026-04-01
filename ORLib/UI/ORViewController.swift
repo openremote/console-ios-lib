@@ -379,7 +379,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         }
                                     }
                                 case Actions.disconnectFromBleDevice:
-                                    bleProvider?.disconnectFromDevice() { disconnectData in
+                                    bleProvider?.disconnectFromDevice { disconnectData in
                                         self.sendData(data: disconnectData)
                                     }
                                 case Actions.sendToBleDevice:
