@@ -41,10 +41,8 @@ extension WKWebView {
                     }
                 }
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
-            for cookie in cookies {
-                if domain.contains(cookie.domain) {
-                    self.configuration.websiteDataStore.httpCookieStore.delete(cookie)
-                }
+            for cookie in cookies where domain.contains(cookie.domain) {
+                self.configuration.websiteDataStore.httpCookieStore.delete(cookie)
             }
         }
         UserDefaults.standard.removeObject(forKey: PrefKey.cookie + domain)
@@ -91,10 +89,8 @@ extension WKWebView {
     func fetchInMemoryCookies(for domain: String, completion: (([String: Any]) -> Void)?) {
         var cookieDict = [String: AnyObject]()
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
-            for cookie in cookies {
-                if domain.contains(cookie.domain) {
-                    cookieDict[cookie.name] = cookie.properties as AnyObject?
-                }
+            for cookie in cookies where domain.contains(cookie.domain) {
+                cookieDict[cookie.name] = cookie.properties as AnyObject?
             }
             completion?(cookieDict)
         }

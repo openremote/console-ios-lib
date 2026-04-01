@@ -139,14 +139,12 @@ class DeviceRegistry {
 
                     if self.bleScanning { // If we're not scanning anymore, we don't report back
                         var devicesChanged = false
-                        for device in deviceList {
+                        for device in deviceList where self.getDeviceNamed(device.name) == nil {
                             // We need to assign an id to each device, so web app can refer to it
                             // At this stage, we name is also unique but having an id would allow duplicates at some point
-                            if self.getDeviceNamed(device.name) == nil {
-                                devicesChanged = true
-                                let dev = DiscoveredDevice(device: device)
-                                self.registerDevice(dev)
-                            }
+                            devicesChanged = true
+                            let dev = DiscoveredDevice(device: device)
+                            self.registerDevice(dev)
                         }
                         // If there are devices in the list and the list changed since the last time, we communicated to web app
                         if !self.devices.isEmpty && devicesChanged {
