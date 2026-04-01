@@ -19,6 +19,7 @@
  */
 
 import Testing
+import Foundation
 @testable import ORLib
 
 /// Tests to understand how URL parsing works

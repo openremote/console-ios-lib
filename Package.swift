@@ -35,7 +35,10 @@ let package = Package(
         .testTarget(
             name: "ORLibTests",
             dependencies: ["ORLib"],
-            path: "Tests"
+            path: "Tests",
+            resources: [
+                .copy("Fixtures")
+            ]
         )
     ],
     swiftLanguageVersions: [.v5]
