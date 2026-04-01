@@ -62,22 +62,22 @@ public class ConfigManager {
             }
 
             do {
-                let cc: ORConsoleConfig
+                let consoleConfig: ORConsoleConfig
                 do {
-                    cc = try await api.getConsoleConfig() ?? ORConsoleConfig()
-                    if let apps = cc.apps {
+                    consoleConfig = try await api.getConsoleConfig() ?? ORConsoleConfig()
+                    if let apps = consoleConfig.apps {
                         globalAppInfos = apps
                     }
                 } catch ApiManagerError.notFound {
-                    cc = ORConsoleConfig()
+                    consoleConfig = ORConsoleConfig()
                 } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 {
                     // 403 is for backwards compatibility of older manager
-                    cc = ORConsoleConfig()
+                    consoleConfig = ORConsoleConfig()
                 } catch ApiManagerError.communicationError(let httpStatusCode) {
                     throw ApiManagerError.communicationError(httpStatusCode)
                 }
 
-                if let selectedApp = cc.app {
+                if let selectedApp = consoleConfig.app {
 
                     // TODO: we should potentially set the realms, either from console config or from specific app config
 
@@ -85,41 +85,41 @@ public class ConfigManager {
                     return state
                 }
 
-                if cc.showAppTextInput {
+                if consoleConfig.showAppTextInput {
                     state = .selectApp(baseUrl, nil)
                     return state
                 }
 
                 // allowedApps == nil -> get list of apps
-                if cc.allowedApps == nil || cc.allowedApps!.isEmpty {
+                if consoleConfig.allowedApps == nil || consoleConfig.allowedApps!.isEmpty {
                     do {
                         let apps = try await api.getApps()
                         let filteredApps = await filterPotentialApps(apiManager: api, potentialApps: apps)
-                        if let fa = filteredApps, fa.count == 1, let appName = fa.first {
+                        if let filteredApps, filteredApps.count == 1, let appName = filteredApps.first {
                             state = .selectRealm(baseUrl, appName, nil)
-                        } else if let fa = filteredApps, fa.count > 1 {
+                        } else if let filteredApps, filteredApps.count > 1 {
                             state = .selectApp(baseUrl, filteredApps)
                         } else {
                             state = .selectRealm(baseUrl, "manager", nil )
                         }
 
                     } catch ApiManagerError.notFound {
-                        if cc.showRealmTextInput {
+                        if consoleConfig.showRealmTextInput {
                             state = .selectRealm(baseUrl, "manager", nil)
                         } else {
                             state = .complete(ProjectConfig(domain: baseUrl, app: "manager", realm: nil))
                         }
                     } catch ApiManagerError.communicationError(let httpStatusCode) where httpStatusCode == 404 || httpStatusCode == 403 {
                         // 403 is for backwards compatibility of older manager
-                        if cc.showRealmTextInput {
+                        if consoleConfig.showRealmTextInput {
                             state = .selectRealm(baseUrl, "manager", nil)
                         } else {
                             state = .complete(ProjectConfig(domain: baseUrl, app: "manager", realm: nil))
                         }
                     }
                 } else {
-                    let filteredApps = await filterPotentialApps(apiManager: api, potentialApps: cc.allowedApps)
-                    if let fa = filteredApps, fa.count == 1, let appName = fa.first {
+                    let filteredApps = await filterPotentialApps(apiManager: api, potentialApps: consoleConfig.allowedApps)
+                    if let filteredApps, filteredApps.count == 1, let appName = filteredApps.first {
                         state = .selectRealm(baseUrl, appName, nil)
                     } else {
                         state = .selectApp(baseUrl, filteredApps)
