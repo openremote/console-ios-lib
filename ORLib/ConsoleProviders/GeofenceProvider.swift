@@ -33,7 +33,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
     let locationManager = CLLocationManager()
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
     var geoPostUrls = [String: [String]]()
-    var enableCallback: (([String: Any]) -> (Void))?
+    var enableCallback: (([String: Any]) -> Void)?
 
     public var baseURL: String = ""
     public var consoleId: String? = nil
@@ -106,7 +106,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
         userdefaults?.synchronize()
     }
 
-    public func enable(baseUrl: String, consoleId: String?, callback: @escaping ([String: Any]) -> (Void)) {
+    public func enable(baseUrl: String, consoleId: String?, callback: @escaping ([String: Any]) -> Void) {
         self.baseURL = baseUrl
         self.consoleId = consoleId
         userdefaults?.set(self.baseURL, forKey: GeofenceProvider.baseUrlKey)
@@ -152,7 +152,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
         fetchGeofences()
     }
 
-    func fetchGeofences(callback: (([GeofenceDefinition]) -> ())? = nil) {
+    func fetchGeofences(callback: (([GeofenceDefinition]) -> Void)? = nil) {
         if let tkurlRequest = URL(string: "\(baseURL)/\(geofenceFetchEndpoint)\(consoleId ?? "")") {
             let tkRequest = NSMutableURLRequest(url: tkurlRequest)
             tkRequest.httpMethod = "GET"

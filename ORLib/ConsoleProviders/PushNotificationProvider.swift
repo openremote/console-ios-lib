@@ -31,7 +31,7 @@ public class PushNotificationProvider: NSObject {
         super.init()
     }
 
-    public func initialize(callback: @escaping ([String: Any?]) -> (Void)) {
+    public func initialize(callback: @escaping ([String: Any?]) -> Void) {
         UNUserNotificationCenter.current().getNotificationSettings { (settings) in
             switch settings.authorizationStatus {
 
@@ -74,7 +74,7 @@ public class PushNotificationProvider: NSObject {
         }
     }
 
-    public func enable(consoleId: String?, callback: @escaping ([String: Any]) -> (Void)) {
+    public func enable(consoleId: String?, callback: @escaping ([String: Any]) -> Void) {
         self.consoleId = consoleId
         if self.consoleId != nil {
             userdefaults?.set(self.consoleId!, forKey: GeofenceProvider.consoleIdKey)

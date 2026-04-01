@@ -22,7 +22,7 @@ import CoreBluetooth
 import ESPProvision
 import os
 
-typealias SendDataCallback = ([String: Any]) -> (Void)
+typealias SendDataCallback = ([String: Any]) -> Void
 
 class ESPProvisionProvider: NSObject {
     public static let espProvisionDisabledKey = "espProvisionDisabled"

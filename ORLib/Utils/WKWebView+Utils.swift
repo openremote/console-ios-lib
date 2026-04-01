@@ -26,14 +26,14 @@ extension WKWebView {
         static let cookie = "cookies"
     }
 
-    func writeCookiesToStorage(for domain: String, completion: (() -> (Void))?) {
+    func writeCookiesToStorage(for domain: String, completion: (() -> Void)?) {
         fetchInMemoryCookies(for: domain) { cookies in
             UserDefaults.standard.set(cookies, forKey: PrefKey.cookie + domain)
             completion?()
         }
     }
 
-    func clearCookies(for domain: String, completion: (() -> (Void))?) {
+    func clearCookies(for domain: String, completion: (() -> Void)?) {
         WKWebsiteDataStore.default().fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
                     records.forEach { record in
                         WKWebsiteDataStore.default().removeData(ofTypes: record.dataTypes, for: [record], completionHandler: {})
@@ -52,7 +52,7 @@ extension WKWebView {
         completion?()
     }
 
-    func loadCookiesFromStorage(for domain: String, completion: (() -> (Void))?) {
+    func loadCookiesFromStorage(for domain: String, completion: (() -> Void)?) {
         if let storedCookies = UserDefaults.standard.dictionary(forKey: (PrefKey.cookie + domain)) {
             fetchInMemoryCookies(for: domain) { freshCookies in
 
@@ -88,7 +88,7 @@ extension WKWebView {
         }
     }
 
-    func fetchInMemoryCookies(for domain: String, completion: (([String: Any]) -> (Void))?) {
+    func fetchInMemoryCookies(for domain: String, completion: (([String: Any]) -> Void)?) {
         var cookieDict = [String: AnyObject]()
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
             for cookie in cookies {

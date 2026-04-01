@@ -28,9 +28,9 @@ public class BleProvider: NSObject {
 
     private var centralManager: CBCentralManager?
     private var devices: Set<CBPeripheral> = []
-    private var scanDevicesCallback: (([String: Any]) -> (Void))?
-    private var connectToDeviceCallback: (([String: Any]) -> (Void))?
-    private var sendToDeviceCallback: (([String: Any]) -> (Void))?
+    private var scanDevicesCallback: (([String: Any]) -> Void)?
+    private var connectToDeviceCallback: (([String: Any]) -> Void)?
+    private var sendToDeviceCallback: (([String: Any]) -> Void)?
     private var scanTimer: Timer?
     private var connectedDevice: CBPeripheral?
     private var selectedCharacteristic: CBCharacteristic?
@@ -40,7 +40,7 @@ public class BleProvider: NSObject {
     private var sendDataIndex = 0
     private var maxDataLength = 182 // according to documentation
 
-    var alertBluetoothCallback: (() -> (Void))?
+    var alertBluetoothCallback: (() -> Void)?
 
     public override init() {
         super.init()
@@ -59,7 +59,7 @@ public class BleProvider: NSObject {
         ]
     }
 
-    public func enable(callback: @escaping ([String: Any]) -> (Void)) {
+    public func enable(callback: @escaping ([String: Any]) -> Void) {
         userdefaults?.removeObject(forKey: BleProvider.bluetoothDisabledKey)
         userdefaults?.synchronize()
         callback([
@@ -83,7 +83,7 @@ public class BleProvider: NSObject {
         ]
     }
 
-    public func scanForDevices(callback: @escaping ([String: Any]) -> (Void)) {
+    public func scanForDevices(callback: @escaping ([String: Any]) -> Void) {
         if centralManager == nil {
             centralManager = CBCentralManager()
             centralManager!.delegate = self
@@ -98,7 +98,7 @@ public class BleProvider: NSObject {
         }
     }
 
-    public func connectoToDevice(deviceId: String, callback: @escaping ([String: Any]) -> (Void)) {
+    public func connectoToDevice(deviceId: String, callback: @escaping ([String: Any]) -> Void) {
         connectToDeviceCallback = callback
         deviceServices.removeAll()
         deviceCharacteristics.removeAll()
@@ -107,7 +107,7 @@ public class BleProvider: NSObject {
         }
     }
 
-    public func disconnectFromDevice(callback: @escaping ([String: Any]) -> (Void)) {
+    public func disconnectFromDevice(callback: @escaping ([String: Any]) -> Void) {
         if let connectedDevice = self.connectedDevice {
             centralManager?.cancelPeripheralConnection(connectedDevice)
             callback([
@@ -124,7 +124,7 @@ public class BleProvider: NSObject {
         }
     }
 
-    public func sendToDevice(attributeId: String, value: Data, callback: @escaping ([String: Any]) -> (Void)) {
+    public func sendToDevice(attributeId: String, value: Data, callback: @escaping ([String: Any]) -> Void) {
         if self.connectedDevice != nil {
             sendToDeviceCallback = callback
             if let characteristic = deviceCharacteristics.first(where: {$0.uuid.uuidString == attributeId}) {
