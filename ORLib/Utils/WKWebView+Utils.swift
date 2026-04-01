@@ -62,7 +62,7 @@ extension WKWebView {
                     // swiftlint:disable:next force_cast
                     let cookie = cookieConfig as! Dictionary<String, Any>
 
-                    var expire: Any? = nil
+                    var expire: Any?
 
                     if let expireTime = cookie["Expires"] as? Double {
                         expire = Date(timeIntervalSinceNow: expireTime)

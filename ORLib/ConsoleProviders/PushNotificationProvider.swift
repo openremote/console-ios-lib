@@ -24,7 +24,7 @@ public class PushNotificationProvider: NSObject {
 
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
     let version = "fcm"
-    public var consoleId: String? = nil
+    public var consoleId: String?
     public static let pushDisabledKey = "pushDisabled"
 
     public override init() {
