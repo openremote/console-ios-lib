@@ -111,6 +111,7 @@ public class ScannerOverlayPreviewLayer: AVCaptureVideoPreviewLayer {
 
 internal extension CGPoint {
 
+    // swiftlint:disable:next identifier_name
     func offsetBy(dx: CGFloat, dy: CGFloat) -> CGPoint {
         var point = self
         point.x += dx

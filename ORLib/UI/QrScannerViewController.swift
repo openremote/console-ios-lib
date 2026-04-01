@@ -97,11 +97,11 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     }
 
     func failed() {
-        let ac = UIAlertController(title: "Scanning not supported",
+        let alert = UIAlertController(title: "Scanning not supported",
                                    message: "Your device does not support scanning a code from an item. Please use a device with a camera.",
                                    preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "OK", style: .default))
-        present(ac, animated: true)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
         captureSession = nil
     }
 
