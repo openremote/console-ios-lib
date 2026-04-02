@@ -26,7 +26,22 @@ class FileApiManager: ApiManager {
     let decoder = JSONDecoder()
 
     private var fixture: Fixture
-    
+
+    private static func fixtureURL(for domain: String) -> URL? {
+#if SWIFT_PACKAGE
+        return Bundle.module.url(
+            forResource: domain,
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        )
+#else
+        return Bundle(for: FileApiManager.self).url(
+            forResource: domain,
+            withExtension: "json"
+        )
+#endif
+    }
+
     public init(baseUrl: String) {
         let pattern = #"https://(?<domain>.*)\.openremote\.app"#
         do {
@@ -36,14 +51,13 @@ class FileApiManager: ApiManager {
                 let nsrange = match.range(withName: "domain")
                 if nsrange.location != NSNotFound, let range = Range(nsrange, in: baseUrl) {
                     let domain = baseUrl[range]
-                    if let fixtureFile = Bundle(for: FileApiManager.self).url(forResource: String(domain), withExtension: "json") {
-                        if let fixtureData = try? Data(contentsOf: fixtureFile as URL) {
-                            do {
-                                fixture = try self.decoder.decode(Fixture.self, from: fixtureData)
-                                return
-                            } catch {
-                                ORLogger.test.error("\(error)")
-                            }
+                    if let fixtureFile = Self.fixtureURL(for: String(domain)),
+                       let fixtureData = try? Data(contentsOf: fixtureFile as URL) {
+                        do {
+                            fixture = try self.decoder.decode(Fixture.self, from: fixtureData)
+                            return
+                        } catch {
+                            ORLogger.test.error("\(error)")
                         }
                     }
                 }
