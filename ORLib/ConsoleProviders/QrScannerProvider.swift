@@ -125,9 +125,7 @@ public class QrScannerProvider: NSObject {
         ]
     }
 
-    public func startScanner(currentViewController: UIViewController,
-                             startScanCallback: @escaping ([String: Any]) -> Void,
-                             scannedCallback: @escaping ([String: Any]) -> Void) {
+    public func startScanner(currentViewController: UIViewController, startScanCallback: @escaping ([String: Any]) -> Void, scannedCallback: @escaping ([String: Any]) -> Void) {
         let cameraAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
 
         switch cameraAuthorizationStatus {
@@ -169,15 +167,13 @@ public class QrScannerProvider: NSObject {
                             DefaultsKey.successKey: false,
                         ]
                     )
-                    self.requestCameraPersmissions(currentViewController: currentViewController, startScanCallback: startScanCallback, scannedCallback: scannedCallback)
+                    self.requestCameraPersmissions(currentViewController: currentViewController)
                 }
             })
         }
     }
 
-    private func requestCameraPersmissions(currentViewController: UIViewController,
-                                           startScanCallback: @escaping ([String: Any]) -> Void,
-                                           scannedCallback: @escaping ([String: Any]) -> Void) {
+    private func requestCameraPersmissions(currentViewController: UIViewController) {
         let alertController = UIAlertController(title: "Camera permission needed",
                                                 message: "In order to scan QR codes, access to the camera is needed. Would you like to enable it now?",
                                                 preferredStyle: .alert)
