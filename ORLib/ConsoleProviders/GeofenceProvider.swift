@@ -253,7 +253,7 @@ public class GeofenceProvider: NSObject, URLSessionDelegate {
                     request.httpBody = postBody
                 }
             } else {
-                request.httpBody = "null".data(using: .utf8)
+                request.httpBody = Data("null".utf8)
             }
 
             let semaphore = DispatchSemaphore(value: 0)

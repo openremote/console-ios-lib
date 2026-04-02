@@ -37,6 +37,7 @@ open class ORViewcontroller: UIViewController {
     var data: Data?
     var myWebView: WKWebView?
     var webProgressBar: UIProgressView?
+    var webProgressObservation: NSKeyValueObservation?
     var defaults: UserDefaults?
     var webCfg: WKWebViewConfiguration?
     var connectivityChecker: ConnectivityChecker?
@@ -54,6 +55,7 @@ open class ORViewcontroller: UIViewController {
     public var targetUrl: String?
 
     deinit {
+        self.webProgressObservation?.invalidate()
         self.connectivityChecker?.stopMonitoring()
     }
 
@@ -105,6 +107,9 @@ open class ORViewcontroller: UIViewController {
     }
 
     func configureAccess() {
+        self.webProgressObservation?.invalidate()
+        self.webProgressObservation = nil
+
         if let currentWebView = myWebView {
             currentWebView.removeFromSuperview()
         }
@@ -137,8 +142,9 @@ open class ORViewcontroller: UIViewController {
         myWebView = WKWebView(frame: webFrame, configuration: webCfg)
         myWebView?.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         myWebView?.navigationDelegate = self
-        // add observer to get estimated progress value
-        myWebView?.addObserver(self, forKeyPath: "estimatedProgress", options: .new, context: nil)
+        webProgressObservation = myWebView?.observe(\.estimatedProgress, options: [.new]) { [weak self] webView, _ in
+            self?.webProgressBar?.progress = Float(webView.estimatedProgress)
+        }
         myWebView?.allowsBackForwardNavigationGestures = true
         myWebView?.scrollView.contentInsetAdjustmentBehavior = .never
 
@@ -168,14 +174,6 @@ open class ORViewcontroller: UIViewController {
                     configureAccess()
                     loadURL(url: currentUrl)
                 }
-            }
-        }
-    }
-
-    public override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "estimatedProgress" {
-            if let webView = myWebView {
-                webProgressBar?.progress = Float(webView.estimatedProgress)
             }
         }
     }
