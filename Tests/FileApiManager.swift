@@ -51,14 +51,13 @@ class FileApiManager: ApiManager {
                 let nsrange = match.range(withName: "domain")
                 if nsrange.location != NSNotFound, let range = Range(nsrange, in: baseUrl) {
                     let domain = baseUrl[range]
-                    if let fixtureFile = Self.fixtureURL(for: String(domain)) {
-                        if let fixtureData = try? Data(contentsOf: fixtureFile as URL) {
-                            do {
-                                fixture = try self.decoder.decode(Fixture.self, from: fixtureData)
-                                return
-                            } catch {
-                                ORLogger.test.error("\(error)")
-                            }
+                    if let fixtureFile = Self.fixtureURL(for: String(domain)),
+                       let fixtureData = try? Data(contentsOf: fixtureFile as URL) {
+                        do {
+                            fixture = try self.decoder.decode(Fixture.self, from: fixtureData)
+                            return
+                        } catch {
+                            ORLogger.test.error("\(error)")
                         }
                     }
                 }
