@@ -33,6 +33,16 @@ import ORLib
 
 ORLib is available under the AGPL-3.0 license. See the LICENSE.txt file for more info.
 
+## SwiftLint
+
+This project includes a configuration for [SwiftLint](https://github.com/realm/swiftlint).  
+SwiftLint is called as a phase as part of the Xcode project build.
+This phase expects that swiftlint has been installed on the machine running that build.
+
+If building using SwiftPM (or opening the Package.swift file in Xcode), no linting step is performed during the build.  
+This is on purpose, to avoid dependencies on SwiftLint in projects depending on this package.  
+You can manually perform linting by running `swiftlint lint ORLib`.  
+
 ## Protocol Buffer file
 
 The ESPProvision provider uses Protocol Buffer to communicate with the ESP32 device.  

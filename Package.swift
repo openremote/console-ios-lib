@@ -21,11 +21,7 @@ let package = Package(
             name: "RandomPasswordGenerator",
             url: "https://github.com/yukanamori/RandomPasswordGenerator.git",
             .exact("0.1.0")
-        ),
-        .package(
-            name: "SwiftLintPlugins",
-            url: "https://github.com/SimplyDanny/SwiftLintPlugins",
-            from:"0.63.2")
+        )
     ],
     targets: [
         .target(
@@ -34,8 +30,7 @@ let package = Package(
             path: "ORLib",
             resources: [
                 .process("Media.xcassets")
-            ],
-            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+            ]
         ),
         .testTarget(
             name: "ORLibTests",
