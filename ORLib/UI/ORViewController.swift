@@ -544,15 +544,7 @@ extension ORViewcontroller: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         NSLog("error %@", error.localizedDescription)
         if let err = error as? URLError {
-
-            let httpCode: Int
-            switch err.code {
-            case .cannotFindHost:
-                httpCode = 404
-            default:
-                httpCode = 500
-            }
-
+            let httpCode = err.code == .cannotFindHost ? 404 : 500
             handleError(errorCode: httpCode, description: err.localizedDescription, failingUrl: err.failureURLString ?? "", isForMainFrame: true)
         } else {
             handleError(errorCode: 0, description: error.localizedDescription, failingUrl: webView.url?.absoluteString ?? "", isForMainFrame: true)
@@ -566,15 +558,7 @@ extension ORViewcontroller: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         NSLog("error %@", error.localizedDescription)
         if let err = error as? URLError {
-
-            let httpCode: Int
-            switch err.code {
-            case .cannotFindHost:
-                httpCode = 404
-            default:
-                httpCode = 500
-            }
-
+            let httpCode = err.code == .cannotFindHost ? 404 : 500
             handleError(errorCode: httpCode, description: err.localizedDescription, failingUrl: err.failureURLString ?? "", isForMainFrame: true)
         } else {
             handleError(errorCode: 0, description: error.localizedDescription, failingUrl: webView.url?.absoluteString ?? "", isForMainFrame: true)
