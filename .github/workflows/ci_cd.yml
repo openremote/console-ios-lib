@@ -65,6 +65,12 @@ jobs:
           xcresultparser -o junit ORLib.xcresult > junit.xml
         if: ${{ !cancelled() }}
 
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        if: ${{ !cancelled() }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Publish Test Report with Insights
         uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1
         if: ${{ !cancelled() }}
@@ -97,8 +103,3 @@ jobs:
           name: ORLib Tests 
           path: junit.xml
           reporter: jest-junit
-
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
