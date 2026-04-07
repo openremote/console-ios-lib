@@ -49,9 +49,7 @@ public class ORTextInput: UIView {
     }
 
     public var textField: UITextField! {
-        get {
-            return textInput
-        }
+        textInput
     }
 
     public override func layoutSubviews() {
