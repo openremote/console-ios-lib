@@ -55,6 +55,11 @@ jobs:
           sarif_file: swiftlint.sarif
           category: swiftlint
 
+      - name: Generate SwiftLint JSON Report
+        if: ${{ !cancelled() }}
+        run: |
+          swiftlint lint --no-cache --quiet --config .swiftlint.yml --reporter json ORLib > swiftlint.json || true
+
       - name: Build and test
         run: |
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
