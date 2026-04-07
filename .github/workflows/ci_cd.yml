@@ -33,6 +33,9 @@ jobs:
       - name: Install tooling
         run: |
           brew install xcresultparser swiftlint
+          curl --fail --location --silent --show-error \
+            https://raw.githubusercontent.com/SonarSource/sonar-scanning-examples/de677435078ca8873be775e7f718d8dd0669c03d/swift-coverage/swift-coverage-example/xccov-to-sonarqube-generic.sh \
+            -o xccov-to-sonarqube-generic.sh
 
       - name: Swift Package Manager cache
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
@@ -69,6 +72,11 @@ jobs:
         run: |
           xcresultparser -o junit ORLib.xcresult > junit.xml
         if: ${{ !cancelled() }}
+
+      - name: Convert test coverage to SonarQube format
+        if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
+        run: |
+          bash xccov-to-sonarqube-generic.sh ORLib.xcresult/ > Coverage.xml
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
