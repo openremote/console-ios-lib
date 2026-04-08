@@ -1,0 +1,34 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "ESPProvision",
+        "repositoryURL": "https://github.com/espressif/esp-idf-provisioning-ios.git",
+        "state": {
+          "branch": null,
+          "revision": "ff70c09ded605969e053ade44a6b8756b93c4e4c",
+          "version": "3.0.3"
+        }
+      },
+      {
+        "package": "RandomPasswordGenerator",
+        "repositoryURL": "https://github.com/yukanamori/RandomPasswordGenerator.git",
+        "state": {
+          "branch": null,
+          "revision": "feb4d7506c5e4bc2f88a898598e4675298e2b2a2",
+          "version": "0.1.0"
+        }
+      },
+      {
+        "package": "SwiftProtobuf",
+        "repositoryURL": "https://github.com/apple/swift-protobuf.git",
+        "state": {
+          "branch": null,
+          "revision": "c169a5744230951031770e27e475ff6eefe51f9d",
+          "version": "1.33.3"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

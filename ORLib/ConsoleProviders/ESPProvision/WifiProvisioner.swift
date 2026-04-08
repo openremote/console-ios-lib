@@ -154,7 +154,7 @@ class WifiProvisioner {
             // provision callback with status failure(ESPProvision.ESPProvisionError)
             // or
             // provision callback with status success
-            WifiProvisioner.logger.trace("provision callback with status: \(String(describing:status))")
+            WifiProvisioner.logger.trace("provision callback with status: \(String(describing: status))")
 
             switch status {
             case .success:

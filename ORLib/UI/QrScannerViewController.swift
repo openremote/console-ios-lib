@@ -21,7 +21,7 @@ import AVFoundation
 import UIKit
 
 public protocol QrScannerDelegate: AnyObject {
-    func codeScanned(_ codeContents:String?)
+    func codeScanned(_ codeContents: String?)
 }
 
 public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
@@ -44,7 +44,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
             return
         }
 
-        if (captureSession.canAddInput(videoInput)) {
+        if captureSession.canAddInput(videoInput) {
             captureSession.addInput(videoInput)
         } else {
             failed()
@@ -53,7 +53,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
 
         let metadataOutput = AVCaptureMetadataOutput()
 
-        if (captureSession.canAddOutput(metadataOutput)) {
+        if captureSession.canAddOutput(metadataOutput) {
             captureSession.addOutput(metadataOutput)
 
             metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
@@ -74,7 +74,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
 
         subView.layer.addSublayer(previewLayer)
         view.addSubview(subView)
-        
+
         DispatchQueue.global(qos: .background).async {
             self.captureSession.startRunning()
         }
@@ -89,7 +89,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     }
 
     @objc func cancelButtonTapped() {
-        if (delegate != nil) {
+        if delegate != nil {
             delegate?.codeScanned(nil)
         } else {
             self.dismiss(animated: true, completion: nil)
@@ -97,16 +97,18 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     }
 
     func failed() {
-        let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning a code from an item. Please use a device with a camera.", preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "OK", style: .default))
-        present(ac, animated: true)
+        let alert = UIAlertController(title: "Scanning not supported",
+                                   message: "Your device does not support scanning a code from an item. Please use a device with a camera.",
+                                   preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
         captureSession = nil
     }
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        if (captureSession?.isRunning == false) {
+        if captureSession?.isRunning == false {
             DispatchQueue.global(qos: .background).async {
                 self.captureSession.startRunning()
             }
@@ -116,7 +118,7 @@ public class QrScannerViewController: UIViewController, AVCaptureMetadataOutputO
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
 
-        if (captureSession?.isRunning == true) {
+        if captureSession?.isRunning == true {
             captureSession.stopRunning()
         }
     }

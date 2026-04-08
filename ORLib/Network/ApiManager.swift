@@ -19,7 +19,7 @@
 
 import Foundation
 
-public typealias ResponseBlock<T: Codable> = (_ statusCode: Int, _ object: T?, _ error: Error?) -> ()
+public typealias ResponseBlock<T: Codable> = (_ statusCode: Int, _ object: T?, _ error: Error?) -> Void
 
 public enum ApiManagerError: Error {
     case invalidUrl
@@ -29,15 +29,15 @@ public enum ApiManagerError: Error {
 }
 
 public protocol ApiManager {
-    
+
     func getConsoleConfig(callback: ResponseBlock<ORConsoleConfig>?)
 
     func getConsoleConfig() async throws -> ORConsoleConfig?
-    
+
     func getApps(callback: ResponseBlock<[String]>?)
-    
+
     func getApps() async throws -> [String]?
-    
+
     func getAppInfo(appName: String) async throws -> ORAppInfo?
 
 }

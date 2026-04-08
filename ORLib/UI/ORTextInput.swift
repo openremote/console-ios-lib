@@ -49,9 +49,7 @@ public class ORTextInput: UIView {
     }
 
     public var textField: UITextField! {
-        get {
-            return textInput
-        }
+        textInput
     }
 
     public override func layoutSubviews() {
@@ -63,7 +61,7 @@ public class ORTextInput: UIView {
     }
 
     private func setupInputView() {
-        if let _ = self.viewWithTag(1) { return }
+        if self.viewWithTag(1) != nil { return }
 
         textInput = UITextField()
         textInput.tag = 1
@@ -129,7 +127,7 @@ public class ORTextInput: UIView {
     private func updatePlaceholderPosition(animated: Bool) {
         let isTextInputEmpty = textInput.text?.isEmpty ?? true
         let isFocused = textInput.isFirstResponder
-        
+
         let targetFontSize = isFocused || !isTextInputEmpty ? placeholderSmallFontSize : placeholderDefaultFontSize
         let targetY = isFocused || !isTextInputEmpty ? -textInput.frame.height / 2 : 0
 

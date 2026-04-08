@@ -50,5 +50,3 @@ class LoopDetector {
         return false
     }
 }
-
-

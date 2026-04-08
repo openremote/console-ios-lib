@@ -21,19 +21,19 @@ import WebKit
 import os
 
 extension WKWebView {
-    
+
     enum PrefKey {
         static let cookie = "cookies"
     }
-    
-    func writeCookiesToStorage(for domain: String, completion: (() -> (Void))?) {
+
+    func writeCookiesToStorage(for domain: String, completion: (() -> Void)?) {
         fetchInMemoryCookies(for: domain) { cookies in
             UserDefaults.standard.set(cookies, forKey: PrefKey.cookie + domain)
-            completion?();
+            completion?()
         }
     }
-    
-    func clearCookies(for domain: String, completion: (() -> (Void))?) {
+
+    func clearCookies(for domain: String, completion: (() -> Void)?) {
         WKWebsiteDataStore.default().fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
                     records.forEach { record in
                         WKWebsiteDataStore.default().removeData(ofTypes: record.dataTypes, for: [record], completionHandler: {})
@@ -41,33 +41,31 @@ extension WKWebView {
                     }
                 }
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
-            for cookie in cookies {
-                if domain.contains(cookie.domain) {
-                    self.configuration.websiteDataStore.httpCookieStore.delete(cookie)
-                }
+            for cookie in cookies where domain.contains(cookie.domain) {
+                self.configuration.websiteDataStore.httpCookieStore.delete(cookie)
             }
         }
         UserDefaults.standard.removeObject(forKey: PrefKey.cookie + domain)
         UserDefaults.standard.synchronize()
-        completion?();
+        completion?()
     }
-    
-    
-    func loadCookiesFromStorage(for domain: String, completion: (() -> (Void))?) {
-        if let storedCookies = UserDefaults.standard.dictionary(forKey: (PrefKey.cookie + domain)){
+
+    func loadCookiesFromStorage(for domain: String, completion: (() -> Void)?) {
+        if let storedCookies = UserDefaults.standard.dictionary(forKey: (PrefKey.cookie + domain)) {
             fetchInMemoryCookies(for: domain) { freshCookies in
-                
+
                 let mergedCookie = storedCookies.merging(freshCookies) { (_, new) in new }
-                
+
                 for (_, cookieConfig) in mergedCookie {
-                    let cookie = cookieConfig as! Dictionary<String, Any>
-                    
-                    var expire : Any? = nil
-                    
-                    if let expireTime = cookie["Expires"] as? Double{
+                    // swiftlint:disable:next force_cast
+                    let cookie = cookieConfig as! [String: Any]
+
+                    var expire: Any?
+
+                    if let expireTime = cookie["Expires"] as? Double {
                         expire = Date(timeIntervalSinceNow: expireTime)
                     }
-                    
+
                     let newCookie = HTTPCookie(properties: [
                         .domain: cookie["Domain"] as Any,
                         .path: cookie["Path"] as Any,
@@ -76,26 +74,23 @@ extension WKWebView {
                         .secure: cookie["Secure"] as Any,
                         .expires: expire as Any
                     ])
-                    
+
                     self.configuration.websiteDataStore.httpCookieStore.setCookie(newCookie!)
                 }
-                
+
                 completion?()
             }
-            
-        }
-        else{
+
+        } else {
             completion?()
         }
     }
-    
-    func fetchInMemoryCookies(for domain: String, completion: (([String: Any]) -> (Void))?) {
+
+    func fetchInMemoryCookies(for domain: String, completion: (([String: Any]) -> Void)?) {
         var cookieDict = [String: AnyObject]()
         WKWebsiteDataStore.default().httpCookieStore.getAllCookies { (cookies) in
-            for cookie in cookies {
-                if domain.contains(cookie.domain) {
-                    cookieDict[cookie.name] = cookie.properties as AnyObject?
-                }
+            for cookie in cookies where domain.contains(cookie.domain) {
+                cookieDict[cookie.name] = cookie.properties as AnyObject?
             }
             completion?(cookieDict)
         }

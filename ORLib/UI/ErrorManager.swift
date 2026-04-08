@@ -20,20 +20,20 @@
 import Foundation
 import UIKit
 
-public class ErrorManager : NSObject {
-    
-    static func showError(error : Error)  {
+public class ErrorManager: NSObject {
+
+    static func showError(error: Error) {
         DispatchQueue.main.async {
-            NSLog("showing error %@",error as NSError)
+            NSLog("showing error %@", error as NSError)
             let topWindow = UIWindow(frame: UIScreen.main.bounds)
             topWindow.rootViewController = UIViewController()
             topWindow.windowLevel = UIWindow.Level.alert + 1
             let alertVC = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: UIAlertController.Style.alert)
-            let alertAction = UIAlertAction(title: "Done", style: .cancel) { (action) in
+            let alertAction = UIAlertAction(title: "Done", style: .cancel) { _ in
                 topWindow.rootViewController?.presentedViewController?.dismiss(animated: true, completion: nil)
                 topWindow.isHidden = true
             }
-            
+
             alertVC.addAction(alertAction)
             DispatchQueue.main.async {
                 topWindow.makeKeyAndVisible()

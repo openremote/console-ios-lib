@@ -78,7 +78,7 @@ public enum Providers {
     public static let push = "push"
     public static let geofence = "geofence"
     public static let storage = "storage"
-    public static let qr = "qr"
+    public static let qr = "qr" // swiftlint:disable:this identifier_name
     public static let ble = "ble"
     public static let espprovision = "espprovision"
 }
@@ -106,6 +106,7 @@ public enum ActionType {
     public static let httpMethod = "httpMethod"
     public static let openInBrowser = "openInBrowser"
     public static let notificationId = "notification-id"
+    // swiftlint:disable identifier_name
     public static let ACTION_DEEP_LINK = "LINK"
     public static let ACTION_ACTUATOR = "ACTUATOR"
 }

@@ -80,7 +80,7 @@ struct ConfigManagerTest {
         state = try configManager.setRealm(realm: "master")
         #expect(state == ConfigManagerState.complete(ProjectConfig(domain: "https://test6.openremote.app", app: "Console 2", realm: "master")))
     }
-    
+
     @Test func test7() async throws {
         var state = try await configManager.setDomain(domain: "test7")
         #expect(state == ConfigManagerState.selectApp("https://test7.openremote.app", ["Console 1", "Console 2"]))
@@ -99,7 +99,7 @@ struct ConfigManagerTest {
         #expect(state == ConfigManagerState.complete(ProjectConfig(domain: "https://test8.openremote.app", app: "Console 1", realm: "master1")))
     }
 
-    
+
     @Test func test8_GoBack() async throws {
         var state = try await configManager.setDomain(domain: "test8")
         #expect(state == ConfigManagerState.selectApp("https://test8.openremote.app", ["Console 1", "Console 2"]))
@@ -110,7 +110,7 @@ struct ConfigManagerTest {
         state = try configManager.setRealm(realm: "master2")
         #expect(state == ConfigManagerState.complete(ProjectConfig(domain: "https://test8.openremote.app", app: "Console 1", realm: "master2")))
     }
-    
+
     @Test func test9() async throws {
         var state = try await configManager.setDomain(domain: "test9")
         #expect(state == ConfigManagerState.selectApp("https://test9.openremote.app", ["Console 1", "Console 2"]))

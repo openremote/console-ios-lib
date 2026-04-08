@@ -69,19 +69,19 @@ class DeviceConnection {
                     self.bleStatus = .connected
                     self.configChannel = ORConfigChannel(device: self.device!)
                     self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connected)
-                    break
                 case .failedToConnect(let error):
                     self.bleStatus = .disconnected
-                    self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connectionError, error: self.mapESPSessionError(error), errorMessage: error.localizedDescription)
+                    self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connectionError,
+                                                   error: self.mapESPSessionError(error), errorMessage: error.localizedDescription)
                 case .disconnected:
                     self.bleStatus = .disconnected
                     self.configChannel = nil
                     self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.disconnected)
-                    break
                 }
             }
         } else {
-            self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connectionError, error: .unknownDevice, errorMessage: "Provided ID does not match any discovered device")
+            self.sendConnectToDeviceStatus(status: ESPProviderConnectToDeviceStatus.connectionError,
+                                           error: .unknownDevice, errorMessage: "Provided ID does not match any discovered device")
         }
     }
 

@@ -30,7 +30,6 @@ protocol ORESPProvisionManager {
 struct EspressifProvisionManager: ORESPProvisionManager {
     var provisionManager: ESPProvisionManager = ESPProvisionManager.shared
 
-
     public func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity = .secure) async throws -> [ORESPDevice] {
         return try await withCheckedThrowingContinuation { continuation in
             // We want to protect ourself against multiple resume of the continuation
@@ -86,7 +85,7 @@ class DeviceRegistry {
     }
 
     private var devices: [DiscoveredDevice] = []
-    private var devicesIndex: [UUID:DiscoveredDevice] = [:]
+    private var devicesIndex: [UUID: DiscoveredDevice] = [:]
 
     // TODO: check if here or some place else or how to be set ?
     var provisionManager: ORESPProvisionManager?
@@ -140,14 +139,12 @@ class DeviceRegistry {
 
                     if self.bleScanning { // If we're not scanning anymore, we don't report back
                         var devicesChanged = false
-                        for device in deviceList {
+                        for device in deviceList where self.getDeviceNamed(device.name) == nil {
                             // We need to assign an id to each device, so web app can refer to it
                             // At this stage, we name is also unique but having an id would allow duplicates at some point
-                            if self.getDeviceNamed(device.name) == nil {
-                                devicesChanged = true
-                                let dev = DiscoveredDevice(device: device)
-                                self.registerDevice(dev)
-                            }
+                            devicesChanged = true
+                            let dev = DiscoveredDevice(device: device)
+                            self.registerDevice(dev)
                         }
                         // If there are devices in the list and the list changed since the last time, we communicated to web app
                         if !self.devices.isEmpty && devicesChanged {
@@ -212,7 +209,7 @@ class DeviceRegistry {
         hasher.combine(device.name)
     }
 
-    static func ==(lhs: DiscoveredDevice, rhs: DiscoveredDevice) -> Bool {
+    static func == (lhs: DiscoveredDevice, rhs: DiscoveredDevice) -> Bool {
         lhs.device.name == rhs.device.name
     }
 
@@ -223,4 +220,3 @@ class DeviceRegistry {
         ]
     }
 }
-

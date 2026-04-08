@@ -58,11 +58,11 @@ public class StorageProvider: NSObject {
             DefaultsKey.actionKey: Actions.retrieve,
             DefaultsKey.providerKey: Providers.storage,
             "key": key,
-            "value": userdefaults?.string(forKey:key) ?? nil
+            "value": userdefaults?.string(forKey: key) ?? nil
         ]
     }
 
-    public func disable()-> [String: Any] {
+    public func disable() -> [String: Any] {
         return [
             DefaultsKey.actionKey: Actions.providerDisable,
             DefaultsKey.providerKey: Providers.storage

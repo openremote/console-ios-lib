@@ -24,14 +24,14 @@ public class PushNotificationProvider: NSObject {
 
     let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
     let version = "fcm"
-    public var consoleId: String? = nil
+    public var consoleId: String?
     public static let pushDisabledKey = "pushDisabled"
-    
+
     public override init() {
         super.init()
     }
-    
-    public func initialize(callback:@escaping ([String: Any?]) ->(Void)) {
+
+    public func initialize(callback: @escaping ([String: Any?]) -> Void) {
         UNUserNotificationCenter.current().getNotificationSettings { (settings) in
             switch settings.authorizationStatus {
 
@@ -73,10 +73,10 @@ public class PushNotificationProvider: NSObject {
             }
         }
     }
-    
-    public func enable(consoleId: String?, callback:@escaping ([String: Any]) ->(Void)) {
+
+    public func enable(consoleId: String?, callback: @escaping ([String: Any]) -> Void) {
         self.consoleId = consoleId
-        if (self.consoleId != nil) {
+        if self.consoleId != nil {
             userdefaults?.set(self.consoleId!, forKey: GeofenceProvider.consoleIdKey)
             userdefaults?.removeObject(forKey: PushNotificationProvider.pushDisabledKey)
             userdefaults?.synchronize()
@@ -128,7 +128,7 @@ public class PushNotificationProvider: NSObject {
         }
     }
 
-    public func disable()-> [String: Any] {
+    public func disable() -> [String: Any] {
         userdefaults?.set(true, forKey: PushNotificationProvider.pushDisabledKey)
         userdefaults?.synchronize()
         return [

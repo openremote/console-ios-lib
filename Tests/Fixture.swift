@@ -27,7 +27,7 @@ struct Fixture: Codable {
     var apps: [String]?
     var appsInfoReturnCode: Int?
     var appsInfo: [String: ORAppInfo]?
-    
+
     init() {
         consoleConfigReturnCode = 404
         appsReturnCode = 404

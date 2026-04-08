@@ -68,7 +68,7 @@ class FileApiManager: ApiManager {
         fixture = Fixture()
     }
 
-    
+
     func getConsoleConfig(callback: ResponseBlock<ORConsoleConfig>?) {
     }
 
@@ -81,7 +81,7 @@ class FileApiManager: ApiManager {
 
     public func getApps(callback: ResponseBlock<[String]>?) {
     }
-    
+
     public func getApps() async throws -> [String]? {
         if let returnCode = fixture.appsReturnCode {
             throw ApiManagerError.communicationError(returnCode)
