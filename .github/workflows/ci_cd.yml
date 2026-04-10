@@ -30,9 +30,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
       - name: Install tooling
         run: |
           brew install xcresultparser swiftlint
+          curl --fail --location --silent --show-error \
+            https://raw.githubusercontent.com/SonarSource/sonar-scanning-examples/de677435078ca8873be775e7f718d8dd0669c03d/swift-coverage/swift-coverage-example/xccov-to-sonarqube-generic.sh \
+            -o xccov-to-sonarqube-generic.sh
 
       - name: Swift Package Manager cache
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
@@ -55,6 +60,11 @@ jobs:
           sarif_file: swiftlint.sarif
           category: swiftlint
 
+      - name: Generate SwiftLint JSON Report
+        if: ${{ !cancelled() }}
+        run: |
+          swiftlint lint --no-cache --quiet --config .swiftlint.yml --reporter json ORLib > swiftlint.json || true
+
       - name: Build and test
         run: |
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
@@ -64,6 +74,17 @@ jobs:
         run: |
           xcresultparser -o junit ORLib.xcresult > junit.xml
         if: ${{ !cancelled() }}
+
+      - name: Convert test coverage to SonarQube format
+        if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
+        run: |
+          bash xccov-to-sonarqube-generic.sh ORLib.xcresult/ > Coverage.xml
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        if: ${{ !cancelled() }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Publish Test Report with Insights
         uses: ctrf-io/github-test-reporter@024bc4b64d997ca9da86833c6b9548c55c620e40 # v1
