@@ -70,6 +70,14 @@ jobs:
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
           -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib -resultBundlePath ORLib.xcresult
 
+      - name: Upload XCResult bundle
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
+        with:
+          name: ORLib-xcresult
+          path: ORLib.xcresult
+          if-no-files-found: error
+
       - name: Extract JUnit test report
         run: |
           xcresultparser -o junit ORLib.xcresult > junit.xml
