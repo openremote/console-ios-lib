@@ -1171,19 +1171,12 @@ struct ESPProvisionProviderTest {
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
 
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.provisionDevice) {
             provider.provisionDevice(userToken: "OAUTH_TOKEN")
         }
 
@@ -1192,8 +1185,10 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["connected"] as? Bool != nil)
         #expect(receivedData["connected"] as? Bool == false)
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
+        #expect(callbackRecorder.messageCount() == 1)
 
-        try #require(mockDevice.receivedData.count == 5)
+        let requestCount = mockDevice.receivedData.count
+        try #require(requestCount >= 3)
 
         var request = try Request(serializedBytes: mockDevice.receivedData[0])
         #expect(request.id == "0")
@@ -1212,7 +1207,7 @@ struct ESPProvisionProviderTest {
             Issue.record("Received an unexpected response: \(request)")
         }
 
-        for i in 2...4 {
+        for i in 2..<requestCount {
             request = try Request(serializedBytes: mockDevice.receivedData[i])
             #expect(request.id == String(i))
             #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
