@@ -79,9 +79,10 @@
 			91F216702D887BCF008F9CA7 /* TimeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216712D887BCF008F9CA7 /* TimeSource.swift */; };
 				91F216692D887C53008F9CA7 /* DeviceProvisionAPIMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */; };
 			91F2166A2D887C53008F9CA7 /* ESPProvisionProviderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */; };
-			91F2166B2D887C53008F9CA7 /* ORESPDeviceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */; };
-			91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */; };
-			91F2166D2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */; };
+				91F2166B2D887C53008F9CA7 /* ORESPDeviceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */; };
+				91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */; };
+				91F2166D2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */; };
+				91F216722D887C53008F9CA7 /* TestTimeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216732D887C53008F9CA7 /* TestTimeSource.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -182,10 +183,11 @@
 			91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WifiProvisioner.swift; sourceTree = "<group>"; };
 			91F216712D887BCF008F9CA7 /* TimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSource.swift; sourceTree = "<group>"; };
 				91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvisionAPIMock.swift; sourceTree = "<group>"; };
-			91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionProviderTest.swift; sourceTree = "<group>"; };
-			91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelTest.swift; sourceTree = "<group>"; };
-			91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDeviceMock.swift; sourceTree = "<group>"; };
-			91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPProvisionManagerMock.swift; sourceTree = "<group>"; };
+				91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionProviderTest.swift; sourceTree = "<group>"; };
+				91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelTest.swift; sourceTree = "<group>"; };
+				91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDeviceMock.swift; sourceTree = "<group>"; };
+				91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPProvisionManagerMock.swift; sourceTree = "<group>"; };
+				91F216732D887C53008F9CA7 /* TestTimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestTimeSource.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -350,12 +352,13 @@
 				91A9A90028BF6EA000DF8928 /* FileApiManager.swift */,
 				91AA79F228D628E9005B9913 /* Fixture.swift */,
 					91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */,
-					91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */,
-					91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */,
-					91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */,
-					91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */,
-					9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
-					9154E2A12D9EB3220055E565 /* URLTest.swift */,
+						91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */,
+						91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */,
+						91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */,
+						91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */,
+						91F216732D887C53008F9CA7 /* TestTimeSource.swift */,
+						9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
+						9154E2A12D9EB3220055E565 /* URLTest.swift */,
 				);
 			path = Tests;
 			sourceTree = "<group>";
@@ -584,11 +587,12 @@
 			buildActionMask = 2147483647;
 			files = (
 					91F216692D887C53008F9CA7 /* DeviceProvisionAPIMock.swift in Sources */,
-					91F2166A2D887C53008F9CA7 /* ESPProvisionProviderTest.swift in Sources */,
-					91F2166B2D887C53008F9CA7 /* ORESPDeviceMock.swift in Sources */,
-					91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */,
-					91F2166D2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift in Sources */,
-					91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */,
+						91F2166A2D887C53008F9CA7 /* ESPProvisionProviderTest.swift in Sources */,
+						91F2166B2D887C53008F9CA7 /* ORESPDeviceMock.swift in Sources */,
+						91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */,
+						91F2166D2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift in Sources */,
+						91F216722D887C53008F9CA7 /* TestTimeSource.swift in Sources */,
+						91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */,
 				9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */,
 				9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */,
 				91A9A8FB28BF6A4900DF8928 /* ConfigManagerTest.swift in Sources */,
