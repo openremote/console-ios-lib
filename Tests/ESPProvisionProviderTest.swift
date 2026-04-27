@@ -24,6 +24,46 @@ import Testing
 
 @testable import ORLib
 
+private final class CallbackRecorder {
+    private let lock = NSLock()
+    private var messages = [[String:Any]]()
+    private var awaitedAction: String?
+    private var continuation: CheckedContinuation<[String:Any], Never>?
+
+    func record(_ data: [String:Any]) {
+        var continuationToResume: CheckedContinuation<[String:Any], Never>?
+
+        lock.lock()
+        messages.append(data)
+        if let awaitedAction,
+           awaitedAction == data["action"] as? String,
+           let continuation {
+            self.awaitedAction = nil
+            self.continuation = nil
+            continuationToResume = continuation
+        }
+        lock.unlock()
+
+        continuationToResume?.resume(returning: data)
+    }
+
+    func waitForFirstMessage(matchingAction action: String, after trigger: () -> Void) async -> [String:Any] {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            awaitedAction = action
+            self.continuation = continuation
+            lock.unlock()
+            trigger()
+        }
+    }
+
+    func messageCount() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages.count
+    }
+}
+
 class ESPORProvisionManagerMock: ORESPProvisionManager {
     var searchESPDevicesCallCount = 0
     var stopESPDevicesSearchCallCount = 0
@@ -521,25 +561,20 @@ struct ESPProvisionProviderTest {
         let device = await getDevice(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-        var receivedData: [String:Any] = [:]
+        defer { provider.stopWifiScan() }
 
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
 
+        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.startWifiScan) {
             provider.startWifiScan()
         }
 
-        // Even if I wait for a moment, if no new devices are discovered, I should only received the callback once
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        await mockDevice.waitForWifiScanCompletions(atLeast: 3)
 
-        #expect(mockDevice.scanWifiListCallCount >= 1)
+        #expect(mockDevice.scanWifiListCallCount >= 3)
         #expect(provider.wifiScanning)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -551,6 +586,7 @@ struct ESPProvisionProviderTest {
         let network = networks.first!
         #expect(network["ssid"] as? String == "SSID-1")
         #expect(network["signalStrength"] as? Int32 == -50)
+        #expect(callbackRecorder.messageCount() == 1)
     }
 
     @Test func wifiScanUpdatedRssi() async throws {

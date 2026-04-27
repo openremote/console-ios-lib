@@ -37,10 +37,37 @@ struct MockResponse {
     }
 }
 
+private actor WifiScanCompletionTracker {
+    private var completedScanCount = 0
+    private var waiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+
+    func markScanCompleted() {
+        completedScanCount += 1
+
+        let readyWaiters = waiters.filter { completedScanCount >= $0.targetCount }
+        waiters.removeAll { completedScanCount >= $0.targetCount }
+
+        for waiter in readyWaiters {
+            waiter.continuation.resume()
+        }
+    }
+
+    func waitForCompletedScans(atLeast targetCount: Int) async {
+        if completedScanCount >= targetCount {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            waiters.append((targetCount, continuation))
+        }
+    }
+}
+
 class ORESPDeviceMock: ORESPDevice {
 
     private var mockResponses: [MockResponse] = []
     private var mockResponsesIndex: [MockResponse].Index? = nil
+    private let wifiScanCompletionTracker = WifiScanCompletionTracker()
 
     var scanWifiListCallCount = 0
     var scanWifiDuration: TimeInterval = 0
@@ -95,7 +122,12 @@ class ORESPDeviceMock: ORESPDevice {
                 try await Task.sleep(nanoseconds: UInt64(scanWifiDuration * Double(NSEC_PER_SEC)))
             }
             completionHandler(networks, nil)
+            await wifiScanCompletionTracker.markScanCompleted()
         }
+    }
+
+    func waitForWifiScanCompletions(atLeast completedScanCount: Int) async {
+        await wifiScanCompletionTracker.waitForCompletedScans(atLeast: completedScanCount)
     }
 
     func provision(ssid: String?, passPhrase: String?, threadOperationalDataset: Data?, completionHandler: @escaping (ESPProvisionStatus) -> Void) {
