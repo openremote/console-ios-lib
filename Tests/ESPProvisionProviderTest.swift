@@ -89,8 +89,21 @@ private final class CallbackRecorder {
 
 class ESPORProvisionManagerMock: ORESPProvisionManager {
     private actor DeviceScanCompletionTracker {
+        private var startedScanCount = 0
         private var completedScanCount = 0
+        private var startWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
         private var waiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+
+        func markScanStarted() {
+            startedScanCount += 1
+
+            let readyWaiters = startWaiters.filter { startedScanCount >= $0.targetCount }
+            startWaiters.removeAll { startedScanCount >= $0.targetCount }
+
+            for waiter in readyWaiters {
+                waiter.continuation.resume()
+            }
+        }
 
         func markScanCompleted() {
             completedScanCount += 1
@@ -100,6 +113,16 @@ class ESPORProvisionManagerMock: ORESPProvisionManager {
 
             for waiter in readyWaiters {
                 waiter.continuation.resume()
+            }
+        }
+
+        func waitForStartedScans(atLeast targetCount: Int) async {
+            if startedScanCount >= targetCount {
+                return
+            }
+
+            await withCheckedContinuation { continuation in
+                startWaiters.append((targetCount, continuation))
             }
         }
 
@@ -124,6 +147,7 @@ class ESPORProvisionManagerMock: ORESPProvisionManager {
 
     func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity) async throws -> [ORESPDevice] {
         searchESPDevicesCallCount += 1
+        await deviceScanCompletionTracker.markScanStarted()
         if scanDevicesDuration > 0 {
             try await Task.sleep(nanoseconds: UInt64(scanDevicesDuration * Double(NSEC_PER_SEC)))
         }
@@ -133,6 +157,10 @@ class ESPORProvisionManagerMock: ORESPProvisionManager {
 
     func stopESPDevicesSearch() {
         stopESPDevicesSearchCallCount += 1
+    }
+
+    func waitForDeviceScanStarts(atLeast startedScanCount: Int) async {
+        await deviceScanCompletionTracker.waitForStartedScans(atLeast: startedScanCount)
     }
 
     func waitForDeviceScanCompletions(atLeast completedScanCount: Int) async {
@@ -245,8 +273,7 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
-
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        await espProvisionMock.waitForDeviceScanStarts(atLeast: 1)
 
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopBleScan) {
             _ = provider.disable()
@@ -277,8 +304,7 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
-
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        await espProvisionMock.waitForDeviceScanStarts(atLeast: 1)
 
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopBleScan) {
             provider.stopDevicesScan()
@@ -716,7 +742,7 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
 
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopWifiScan) {
             provider.stopWifiScan()
