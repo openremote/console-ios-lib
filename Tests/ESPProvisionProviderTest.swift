@@ -149,172 +149,12 @@ private final class CallbackRecorder {
     }
 }
 
-private final class ManualDeviceScanController {
-    private let lock = NSLock()
-    private var manualMode = false
-    private var pendingRequests = [CheckedContinuation<[ORESPDevice], Error>]()
-
-    func setManualMode(_ manualMode: Bool) {
-        lock.lock()
-        self.manualMode = manualMode
-        lock.unlock()
-    }
-
-    func isManualModeEnabled() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return manualMode
-    }
-
-    func enqueuePendingRequest(_ continuation: CheckedContinuation<[ORESPDevice], Error>) {
-        lock.lock()
-        pendingRequests.append(continuation)
-        lock.unlock()
-    }
-
-    func dequeuePendingRequest() -> CheckedContinuation<[ORESPDevice], Error>? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard !pendingRequests.isEmpty else {
-            return nil
-        }
-        return pendingRequests.removeFirst()
-    }
-
-    func drainPendingRequests() -> [CheckedContinuation<[ORESPDevice], Error>] {
-        lock.lock()
-        defer { lock.unlock() }
-        let continuations = pendingRequests
-        pendingRequests.removeAll()
-        return continuations
-    }
-}
-
-class ESPORProvisionManagerMock: ORESPProvisionManager {
-    private actor DeviceScanCompletionTracker {
-        private var startedScanCount = 0
-        private var completedScanCount = 0
-        private var startWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
-        private var waiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
-
-        func markScanStarted() {
-            startedScanCount += 1
-
-            let readyWaiters = startWaiters.filter { startedScanCount >= $0.targetCount }
-            startWaiters.removeAll { startedScanCount >= $0.targetCount }
-
-            for waiter in readyWaiters {
-                waiter.continuation.resume()
-            }
-        }
-
-        func markScanCompleted() {
-            completedScanCount += 1
-
-            let readyWaiters = waiters.filter { completedScanCount >= $0.targetCount }
-            waiters.removeAll { completedScanCount >= $0.targetCount }
-
-            for waiter in readyWaiters {
-                waiter.continuation.resume()
-            }
-        }
-
-        func waitForStartedScans(atLeast targetCount: Int) async {
-            if startedScanCount >= targetCount {
-                return
-            }
-
-            await withCheckedContinuation { continuation in
-                startWaiters.append((targetCount, continuation))
-            }
-        }
-
-        func waitForCompletedScans(atLeast targetCount: Int) async {
-            if completedScanCount >= targetCount {
-                return
-            }
-
-            await withCheckedContinuation { continuation in
-                waiters.append((targetCount, continuation))
-            }
-        }
-    }
-
-    var searchESPDevicesCallCount = 0
-    var stopESPDevicesSearchCallCount = 0
-
-    var scanDevicesDuration: TimeInterval = 0
-    var manualDeviceScans = false {
-        didSet {
-            manualDeviceScanController.setManualMode(manualDeviceScans)
-        }
-    }
-
-    var mockDevices = [ORESPDeviceMock()]
-    private let deviceScanCompletionTracker = DeviceScanCompletionTracker()
-    private let manualDeviceScanController = ManualDeviceScanController()
-
-    func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity) async throws -> [ORESPDevice] {
-        searchESPDevicesCallCount += 1
-        await deviceScanCompletionTracker.markScanStarted()
-        if manualDeviceScanController.isManualModeEnabled() {
-            do {
-                let devices = try await withCheckedThrowingContinuation { continuation in
-                    manualDeviceScanController.enqueuePendingRequest(continuation)
-                }
-                await deviceScanCompletionTracker.markScanCompleted()
-                return devices
-            } catch {
-                await deviceScanCompletionTracker.markScanCompleted()
-                throw error
-            }
-        }
-        if scanDevicesDuration > 0 {
-            try await Task.sleep(nanoseconds: UInt64(scanDevicesDuration * Double(NSEC_PER_SEC)))
-        }
-        await deviceScanCompletionTracker.markScanCompleted()
-        return mockDevices
-    }
-
-    func stopESPDevicesSearch() {
-        stopESPDevicesSearchCallCount += 1
-        let pendingRequests = manualDeviceScanController.drainPendingRequests()
-        for continuation in pendingRequests {
-            continuation.resume(returning: mockDevices)
-        }
-    }
-
-    func waitForDeviceSearchRequests(atLeast requestCount: Int) async {
-        await deviceScanCompletionTracker.waitForStartedScans(atLeast: requestCount)
-    }
-
-    func waitForCompletedDeviceSearchRequests(atLeast requestCount: Int) async {
-        await deviceScanCompletionTracker.waitForCompletedScans(atLeast: requestCount)
-    }
-
-    func completeNextDeviceScan(with devices: [ORESPDevice]? = nil) {
-        guard let continuation = manualDeviceScanController.dequeuePendingRequest() else {
-            Issue.record("No pending device scan to complete")
-            return
-        }
-        continuation.resume(returning: devices ?? mockDevices)
-    }
-
-    func failNextDeviceScan(with error: Error) {
-        guard let continuation = manualDeviceScanController.dequeuePendingRequest() else {
-            Issue.record("No pending device scan to fail")
-            return
-        }
-        continuation.resume(throwing: error)
-    }
-}
-
 struct ESPProvisionProviderTest {
 
     // MARK: device scan
 
     @Test func searchDeviceSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
@@ -348,7 +188,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesMultipleBatches() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
@@ -403,7 +243,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testDisableStopsDeviceSearch() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
@@ -434,7 +274,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopDeviceSearch() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
@@ -466,7 +306,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopDeviceSearchNotStarted() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.scanDevicesDuration = 0.5
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
@@ -488,7 +328,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesTimesout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.mockDevices = []
         espProvisionMock.scanDevicesDuration = 0.05
 
@@ -517,7 +357,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesMaximumIteration() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.mockDevices = []
         espProvisionMock.scanDevicesDuration = 0.05
 
@@ -546,7 +386,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func multipleSearchDevices() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
@@ -610,7 +450,7 @@ struct ESPProvisionProviderTest {
     // MARK: Device connection
 
     @Test func connectToDevice() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
@@ -641,7 +481,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func connectToDeviceFailsForInvalidId() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
@@ -678,7 +518,7 @@ struct ESPProvisionProviderTest {
     // MARK: Wifi scan
 
     @Test func startWifiScanNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
@@ -700,7 +540,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScan() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
@@ -749,7 +589,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScanUpdatedRssi() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
         mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
@@ -813,7 +653,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScanTimesout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.scanWifiDuration = 0.05
         mockDevice.networks = []
@@ -848,7 +688,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScanMaximumIterations() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.scanWifiDuration = 0.05
         mockDevice.networks = []
@@ -883,7 +723,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopWifiScan() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
@@ -920,7 +760,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopWifiScanNotStarted() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.scanWifiDuration = 0.5
         espProvisionMock.mockDevices = [mockDevice]
@@ -952,7 +792,7 @@ struct ESPProvisionProviderTest {
     // TODO: start device scan during wifi search
 
     @Test func sendWifiConfigurationSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
@@ -1020,7 +860,7 @@ struct ESPProvisionProviderTest {
     ])
     func sendWifiConfigurationProvisionErrors(errorTupple: (ESPProvisionError, ESPProviderErrorCode)) async throws {
         let (provisionError, providerErrorCode) = errorTupple
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
         mockDevice.provisionError = provisionError
@@ -1075,7 +915,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func sendWifiConfigurationNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
 
@@ -1101,7 +941,7 @@ struct ESPProvisionProviderTest {
 
 
     @Test func provisionDeviceSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
 
@@ -1177,7 +1017,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceSuccessAfterMultipleStatusRequest() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
 
@@ -1262,7 +1102,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceFailureTimeout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
 
         var expectedDeviceInfo = Response.DeviceInfo()
@@ -1344,7 +1184,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
 
@@ -1367,7 +1207,7 @@ struct ESPProvisionProviderTest {
     // MARK: Exit provisioning
 
     @Test func exitProvisioningSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
 
@@ -1403,7 +1243,7 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func exitProvisioningNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
         _ = provider.initialize()
