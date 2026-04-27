@@ -25,32 +25,40 @@ import Testing
 @testable import ORLib
 
 private final class CallbackRecorder {
+    private enum WaitCondition {
+        case action(name: String, count: Int)
+        case orderedActions([String])
+    }
+
+    private struct WaitResult {
+        let matchedMessages: [[String:Any]]
+        let allMessagesAtMatchTime: [[String:Any]]
+    }
+
     private let lock = NSLock()
     private var messages = [[String:Any]]()
-    private var awaitedAction: String?
-    private var awaitedCount: Int?
-    private var continuation: CheckedContinuation<[[String:Any]], Never>?
+    private var waitCondition: WaitCondition?
+    private var continuation: CheckedContinuation<WaitResult, Never>?
 
     func record(_ data: [String:Any]) {
-        var continuationToResume: CheckedContinuation<[[String:Any]], Never>?
-        var matchingMessages = [[String:Any]]()
+        var continuationToResume: CheckedContinuation<WaitResult, Never>?
+        var waitResult: WaitResult?
 
         lock.lock()
         messages.append(data)
-        if let awaitedAction,
-           let awaitedCount,
-           let continuation {
-            matchingMessages = recordedMessages(matchingAction: awaitedAction)
-            if matchingMessages.count >= awaitedCount {
-                self.awaitedAction = nil
-                self.awaitedCount = nil
-                self.continuation = nil
-                continuationToResume = continuation
-            }
+        if let waitCondition,
+           let continuation,
+           let matchedMessages = matchedMessages(for: waitCondition, in: messages) {
+            self.waitCondition = nil
+            self.continuation = nil
+            continuationToResume = continuation
+            waitResult = WaitResult(matchedMessages: matchedMessages, allMessagesAtMatchTime: messages)
         }
         lock.unlock()
 
-        continuationToResume?.resume(returning: matchingMessages)
+        if let continuationToResume, let waitResult {
+            continuationToResume.resume(returning: waitResult)
+        }
     }
 
     func waitForFirstMessage(matchingAction action: String, after trigger: @escaping () -> Void) async -> [String:Any] {
@@ -59,21 +67,14 @@ private final class CallbackRecorder {
     }
 
     func waitForMessages(matchingAction action: String, count: Int, after trigger: (() -> Void)? = nil) async -> [[String:Any]] {
-        await withCheckedContinuation { continuation in
-            lock.lock()
-            let matchingMessages = recordedMessages(matchingAction: action)
-            if matchingMessages.count >= count {
-                lock.unlock()
-                continuation.resume(returning: matchingMessages)
-                return
-            }
-            awaitedAction = action
-            awaitedCount = count
-            self.continuation = continuation
-            lock.unlock()
+        let waitResult = await wait(until: .action(name: action, count: count), after: trigger)
+        return waitResult.matchedMessages
+    }
 
-            trigger?()
-        }
+    func waitForMessages(matchingActions actions: [String], after trigger: (() -> Void)? = nil) async -> [[String:Any]] {
+        let waitResult = await wait(until: .orderedActions(actions), after: trigger)
+        recordUnexpectedMessages(in: waitResult.allMessagesAtMatchTime, whileMatchingActions: actions)
+        return waitResult.matchedMessages
     }
 
     func messageCount() -> Int {
@@ -82,8 +83,69 @@ private final class CallbackRecorder {
         return messages.count
     }
 
-    private func recordedMessages(matchingAction action: String) -> [[String:Any]] {
-        messages.filter { ($0["action"] as? String) == action }
+    private func wait(until waitCondition: WaitCondition, after trigger: (() -> Void)? = nil) async -> WaitResult {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if let matchedMessages = matchedMessages(for: waitCondition, in: messages) {
+                let waitResult = WaitResult(matchedMessages: matchedMessages, allMessagesAtMatchTime: messages)
+                lock.unlock()
+                continuation.resume(returning: waitResult)
+                return
+            }
+            self.waitCondition = waitCondition
+            self.continuation = continuation
+            lock.unlock()
+
+            trigger?()
+        }
+    }
+
+    private func matchedMessages(for waitCondition: WaitCondition, in recordedMessages: [[String:Any]]) -> [[String:Any]]? {
+        switch waitCondition {
+        case let .action(name, count):
+            let matchingMessages = recordedMessages.filter { ($0["action"] as? String) == name }
+            guard matchingMessages.count >= count else {
+                return nil
+            }
+            return Array(matchingMessages.prefix(count))
+
+        case let .orderedActions(actions):
+            return orderedMessages(matchingActions: actions, in: recordedMessages)
+        }
+    }
+
+    private func orderedMessages(matchingActions actions: [String], in recordedMessages: [[String:Any]]) -> [[String:Any]]? {
+        var matchingMessages = [[String:Any]]()
+        var actionIndex = 0
+
+        for message in recordedMessages {
+            guard actionIndex < actions.count else {
+                break
+            }
+
+            if (message["action"] as? String) == actions[actionIndex] {
+                matchingMessages.append(message)
+                actionIndex += 1
+            }
+        }
+
+        return actionIndex == actions.count ? matchingMessages : nil
+    }
+
+    private func recordUnexpectedMessages(in recordedMessages: [[String:Any]], whileMatchingActions actions: [String]) {
+        var actionIndex = 0
+
+        for message in recordedMessages {
+            guard actionIndex < actions.count else {
+                break
+            }
+
+            if (message["action"] as? String) == actions[actionIndex] {
+                actionIndex += 1
+            } else {
+                Issue.record("Received an unexpected action: \(message)")
+            }
+        }
     }
 }
 
@@ -1246,37 +1308,17 @@ struct ESPProvisionProviderTest {
     // MARK: helpers
 
     private func enable(provider: ESPProvisionProvider) async -> Bool {
-        var receivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.providerEnable) {
             provider.enable()
         }
 
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.providerEnable)
         return (receivedData["success"] as! Bool)
     }
 
     private func getDevice(provider: ESPProvisionProvider) async -> [String: Any] {
-        var receivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.startBleScan) {
             provider.startDevicesScan()
         }
 
@@ -1296,40 +1338,22 @@ struct ESPProvisionProviderTest {
         #expect(receivedData.count == 2)
     }
 
-    private func waitForMessage(provider: ESPProvisionProvider, expectingAction action: String, afterCalling trigger: (() -> (Void))) async -> [String:Any] {
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                if (data["action"] as? String) == action {
-                    receivedData = data
-                    continuation.resume()
-                } else {
-                    Issue.record("Received an unexpected action: \(data)")
-                }
-            }
-            trigger()
+    private func waitForMessage(provider: ESPProvisionProvider, expectingAction action: String, afterCalling trigger: @escaping () -> Void) async -> [String:Any] {
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
-        return receivedData
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [action], after: trigger)
+        return receivedMessages[0]
     }
 
-    private func waitForMessages(provider: ESPProvisionProvider, expectingActions actions: [String], afterCalling trigger: (() -> (Void))) async -> [[String:Any]] {
-        var receivedData: [[String:Any]] = []
-        var actionsIterator = actions.makeIterator()
-        var expectedAction = actionsIterator.next()
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                if (data["action"] as? String) == expectedAction {
-                    receivedData.append(data)
-                    expectedAction = actionsIterator.next()
-                    if expectedAction == nil {
-                        continuation.resume()
-                    }
-                } else {
-                    Issue.record("Received an unexpected action: \(data)")
-                }
-            }
-            trigger()
+    private func waitForMessages(provider: ESPProvisionProvider, expectingActions actions: [String], afterCalling trigger: @escaping () -> Void) async -> [[String:Any]] {
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
-        return receivedData
+
+        return await callbackRecorder.waitForMessages(matchingActions: actions, after: trigger)
     }
 }
