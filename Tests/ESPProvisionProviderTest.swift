@@ -28,32 +28,51 @@ private final class CallbackRecorder {
     private let lock = NSLock()
     private var messages = [[String:Any]]()
     private var awaitedAction: String?
-    private var continuation: CheckedContinuation<[String:Any], Never>?
+    private var awaitedCount: Int?
+    private var continuation: CheckedContinuation<[[String:Any]], Never>?
 
     func record(_ data: [String:Any]) {
-        var continuationToResume: CheckedContinuation<[String:Any], Never>?
+        var continuationToResume: CheckedContinuation<[[String:Any]], Never>?
+        var matchingMessages = [[String:Any]]()
 
         lock.lock()
         messages.append(data)
         if let awaitedAction,
-           awaitedAction == data["action"] as? String,
+           let awaitedCount,
            let continuation {
-            self.awaitedAction = nil
-            self.continuation = nil
-            continuationToResume = continuation
+            matchingMessages = recordedMessages(matchingAction: awaitedAction)
+            if matchingMessages.count >= awaitedCount {
+                self.awaitedAction = nil
+                self.awaitedCount = nil
+                self.continuation = nil
+                continuationToResume = continuation
+            }
         }
         lock.unlock()
 
-        continuationToResume?.resume(returning: data)
+        continuationToResume?.resume(returning: matchingMessages)
     }
 
-    func waitForFirstMessage(matchingAction action: String, after trigger: () -> Void) async -> [String:Any] {
+    func waitForFirstMessage(matchingAction action: String, after trigger: @escaping () -> Void) async -> [String:Any] {
+        let messages = await waitForMessages(matchingAction: action, count: 1, after: trigger)
+        return messages[0]
+    }
+
+    func waitForMessages(matchingAction action: String, count: Int, after trigger: (() -> Void)? = nil) async -> [[String:Any]] {
         await withCheckedContinuation { continuation in
             lock.lock()
+            let matchingMessages = recordedMessages(matchingAction: action)
+            if matchingMessages.count >= count {
+                lock.unlock()
+                continuation.resume(returning: matchingMessages)
+                return
+            }
             awaitedAction = action
+            awaitedCount = count
             self.continuation = continuation
             lock.unlock()
-            trigger()
+
+            trigger?()
         }
     }
 
@@ -61,6 +80,10 @@ private final class CallbackRecorder {
         lock.lock()
         defer { lock.unlock() }
         return messages.count
+    }
+
+    private func recordedMessages(matchingAction action: String) -> [[String:Any]] {
+        messages.filter { ($0["action"] as? String) == action }
     }
 }
 
@@ -604,25 +627,24 @@ struct ESPProvisionProviderTest {
         let device = await getDevice(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-        var receivedData: [String:Any] = [:]
+        defer { provider.stopWifiScan() }
 
-        var firstReceivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    firstReceivedData = data
-                    mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
-                    continuation.resume()
-                }
-            }
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
+
+        let firstReceivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.startWifiScan) {
             provider.startWifiScan()
         }
 
-        // I need to wait a moment for the second callback to be received
-        try await Task.sleep(nanoseconds: UInt64(0.2 * Double(NSEC_PER_SEC)))
+        mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 2)
+        let receivedData = receivedMessages[1]
+
+        await mockDevice.waitForWifiScanCompletions(atLeast: 4)
+
+        #expect(mockDevice.scanWifiListCallCount >= 4)
         #expect(provider.wifiScanning)
 
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
@@ -644,6 +666,7 @@ struct ESPProvisionProviderTest {
         let network2 = networks2.first!
         #expect(network2["ssid"] as? String == "SSID-1")
         #expect(network2["signalStrength"] as? Int32 == -60)
+        #expect(callbackRecorder.messageCount() == 2)
     }
 
     @Test func wifiScanTimesout() async throws {
