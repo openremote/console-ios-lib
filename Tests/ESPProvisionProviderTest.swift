@@ -307,7 +307,6 @@ struct ESPProvisionProviderTest {
 
     @Test func testStopDeviceSearchNotStarted() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
-        espProvisionMock.scanDevicesDuration = 0.5
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
@@ -782,7 +781,6 @@ struct ESPProvisionProviderTest {
     @Test func testStopWifiScanNotStarted() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.5
         espProvisionMock.mockDevices = [mockDevice]
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)

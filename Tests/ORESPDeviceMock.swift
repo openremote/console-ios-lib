@@ -235,7 +235,6 @@ class ORESPDeviceMock: ORESPDevice {
     private let wifiScanCompletionTracker = WifiScanCompletionTracker()
 
     var scanWifiListCallCount = 0
-    var scanWifiDuration: TimeInterval = 0
     var networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
     var manualWifiScans = false {
         didSet {
@@ -301,9 +300,6 @@ class ORESPDeviceMock: ORESPDevice {
                 return
             }
 
-            if scanWifiDuration > 0 {
-                try await Task.sleep(nanoseconds: UInt64(scanWifiDuration * Double(NSEC_PER_SEC)))
-            }
             await wifiScanCompletionTracker.markScanCompleted()
             completionHandler(scanResult.0, scanResult.error)
         }

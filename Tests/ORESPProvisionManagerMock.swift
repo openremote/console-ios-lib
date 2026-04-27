@@ -118,7 +118,6 @@ final class ORESPProvisionManagerMock: ORESPProvisionManager {
     var searchESPDevicesCallCount = 0
     var stopESPDevicesSearchCallCount = 0
 
-    var scanDevicesDuration: TimeInterval = 0
     var manualDeviceScans = false {
         didSet {
             manualDeviceScanController.setManualMode(manualDeviceScans)
@@ -143,9 +142,6 @@ final class ORESPProvisionManagerMock: ORESPProvisionManager {
                 await deviceScanCompletionTracker.markScanCompleted()
                 throw error
             }
-        }
-        if scanDevicesDuration > 0 {
-            try await Task.sleep(nanoseconds: UInt64(scanDevicesDuration * Double(NSEC_PER_SEC)))
         }
         await deviceScanCompletionTracker.markScanCompleted()
         return mockDevices
