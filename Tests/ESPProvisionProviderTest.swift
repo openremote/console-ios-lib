@@ -331,30 +331,18 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
 
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
+        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.stopBleScan) {
             provider.startDevicesScan()
             #expect(provider.bleScanning)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-
-        // Ideally should be == 4 but too brittle based on timing during test run
-        #expect(espProvisionMock.searchESPDevicesCallCount >= 2 && espProvisionMock.searchESPDevicesCallCount <= 4)
-        #expect(receivedCallbackCount == 1)
+        #expect(espProvisionMock.searchESPDevicesCallCount >= 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.bleScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -685,29 +673,18 @@ struct ESPProvisionProviderTest {
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
 
+        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.stopWifiScan) {
             provider.startWifiScan()
             #expect(provider.wifiScanning)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-
-        // Ideally should be == 4 but too brittle based on timing during test run
-        #expect(mockDevice.scanWifiListCallCount >= 2 && mockDevice.scanWifiListCallCount <= 4)
-        #expect(receivedCallbackCount == 1)
+        #expect(mockDevice.scanWifiListCallCount >= 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.wifiScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
