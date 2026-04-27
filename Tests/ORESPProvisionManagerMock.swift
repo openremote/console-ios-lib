@@ -28,6 +28,8 @@ private final class ManualDeviceScanController {
     private let lock = NSLock()
     private var manualMode = false
     private var pendingRequests = [CheckedContinuation<[ORESPDevice], Error>]()
+    private var enqueuedRequestCount = 0
+    private var requestWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
 
     func setManualMode(_ manualMode: Bool) {
         lock.lock()
@@ -42,9 +44,19 @@ private final class ManualDeviceScanController {
     }
 
     func enqueuePendingRequest(_ continuation: CheckedContinuation<[ORESPDevice], Error>) {
+        var waitersToResume = [CheckedContinuation<Void, Never>]()
+
         lock.lock()
         pendingRequests.append(continuation)
+        enqueuedRequestCount += 1
+        let readyWaiters = requestWaiters.filter { enqueuedRequestCount >= $0.targetCount }
+        requestWaiters.removeAll { enqueuedRequestCount >= $0.targetCount }
+        waitersToResume = readyWaiters.map(\.continuation)
         lock.unlock()
+
+        for continuation in waitersToResume {
+            continuation.resume()
+        }
     }
 
     func dequeuePendingRequest() -> CheckedContinuation<[ORESPDevice], Error>? {
@@ -62,6 +74,29 @@ private final class ManualDeviceScanController {
         let continuations = pendingRequests
         pendingRequests.removeAll()
         return continuations
+    }
+
+    func waitForEnqueuedRequests(atLeast targetCount: Int) async {
+        if hasEnqueuedRequests(atLeast: targetCount) {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if enqueuedRequestCount >= targetCount {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            requestWaiters.append((targetCount, continuation))
+            lock.unlock()
+        }
+    }
+
+    private func hasEnqueuedRequests(atLeast targetCount: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return enqueuedRequestCount >= targetCount
     }
 }
 
@@ -156,7 +191,7 @@ final class ORESPProvisionManagerMock: ORESPProvisionManager {
     }
 
     func waitForDeviceSearchRequests(atLeast requestCount: Int) async {
-        await deviceScanCompletionTracker.waitForStartedScans(atLeast: requestCount)
+        await manualDeviceScanController.waitForEnqueuedRequests(atLeast: requestCount)
     }
 
     func waitForCompletedDeviceSearchRequests(atLeast requestCount: Int) async {

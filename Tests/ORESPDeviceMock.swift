@@ -43,6 +43,8 @@ private final class ManualWifiScanController {
     private let lock = NSLock()
     private var manualMode = false
     private var pendingScans = [CompletionHandler]()
+    private var enqueuedScanCount = 0
+    private var scanWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
 
     func setManualMode(_ manualMode: Bool) {
         lock.lock()
@@ -57,9 +59,19 @@ private final class ManualWifiScanController {
     }
 
     func enqueuePendingScan(_ completionHandler: @escaping CompletionHandler) {
+        var waitersToResume = [CheckedContinuation<Void, Never>]()
+
         lock.lock()
         pendingScans.append(completionHandler)
+        enqueuedScanCount += 1
+        let readyWaiters = scanWaiters.filter { enqueuedScanCount >= $0.targetCount }
+        scanWaiters.removeAll { enqueuedScanCount >= $0.targetCount }
+        waitersToResume = readyWaiters.map(\.continuation)
         lock.unlock()
+
+        for continuation in waitersToResume {
+            continuation.resume()
+        }
     }
 
     func dequeuePendingScan() -> CompletionHandler? {
@@ -69,6 +81,29 @@ private final class ManualWifiScanController {
             return nil
         }
         return pendingScans.removeFirst()
+    }
+
+    func waitForEnqueuedScans(atLeast targetCount: Int) async {
+        if hasEnqueuedScans(atLeast: targetCount) {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if enqueuedScanCount >= targetCount {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            scanWaiters.append((targetCount, continuation))
+            lock.unlock()
+        }
+    }
+
+    private func hasEnqueuedScans(atLeast targetCount: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return enqueuedScanCount >= targetCount
     }
 }
 
@@ -318,7 +353,7 @@ class ORESPDeviceMock: ORESPDevice {
     }
 
     func waitForWifiScanStarts(atLeast startedScanCount: Int) async {
-        await wifiScanCompletionTracker.waitForStartedScans(atLeast: startedScanCount)
+        await manualWifiScanController.waitForEnqueuedScans(atLeast: startedScanCount)
     }
 
     func waitForWifiScanCompletions(atLeast completedScanCount: Int) async {
