@@ -23,16 +23,18 @@ class LoopDetector {
     let timeout: TimeInterval
     let maxIterations: Int
 
-    private var startTime: Date?
+    private let timeSource: any TimeSource
+    private var startTime: TimeInterval?
     private var iterationCount = 0
 
-    init(timeout: TimeInterval = 120, maxIterations: Int = 25) {
+    init(timeout: TimeInterval = 120, maxIterations: Int = 25, timeSource: any TimeSource = SystemTimeSource()) {
         self.timeout = timeout
         self.maxIterations = maxIterations
+        self.timeSource = timeSource
     }
 
     func reset() {
-        startTime = .now
+        startTime = timeSource.now
         iterationCount = 0
     }
 
@@ -44,7 +46,7 @@ class LoopDetector {
         guard let startTime else {
             return true
         }
-        if Date.now.timeIntervalSince(startTime) > timeout {
+        if timeSource.now - startTime > timeout {
             return true
         }
         return false

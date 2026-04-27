@@ -34,14 +34,16 @@ class DeviceProvision {
     private var deviceConnection: DeviceConnection?
     var callbackChannel: CallbackChannel?
 
+    private let timeSource: any TimeSource
     var apiURL: URL
     var deviceProvisionAPI: DeviceProvisionAPI
 
     var backendConnectionTimeout: TimeInterval = 60
 
-    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, apiURL: URL) {
+    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, apiURL: URL, timeSource: any TimeSource = SystemTimeSource()) {
         self.deviceConnection = deviceConnection
         self.callbackChannel = callbackChannel
+        self.timeSource = timeSource
         self.apiURL = apiURL
         self.deviceProvisionAPI = DeviceProvisionAPIREST(apiURL: apiURL)
     }
@@ -65,9 +67,9 @@ class DeviceProvision {
 
             var status = BackendConnectionStatus.connecting
             // TODO: what about other status values ? Is status connecting while it connects ? or disconnected ? -> test with real device
-            let startTime = Date.now
+            let startTime = timeSource.now
             while status != .connected {
-                if Date.now.timeIntervalSince(startTime) > backendConnectionTimeout {
+                if timeSource.now - startTime > backendConnectionTimeout {
                     sendProvisionDeviceStatus(connected: false, error: .timeoutError, errorMessage: "Timeout waiting for backend to get connected")
                     return
                 }

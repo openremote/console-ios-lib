@@ -36,6 +36,7 @@ class ESPProvisionProvider: NSObject {
     private var searchWifiTimeout: TimeInterval = 120
     private var searchWifiMaxIterations = 25
 
+    private let timeSource: any TimeSource
     private let deviceRegistry: DeviceRegistry
 
     private var deviceConnection: DeviceConnection?
@@ -48,7 +49,7 @@ class ESPProvisionProvider: NSObject {
 
     typealias DeviceProvisionFactory = () -> DeviceProvision
     private lazy var deviceProvisionFactory: DeviceProvisionFactory = {
-        DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: self.apiURL)
+        DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: self.apiURL, timeSource: self.timeSource)
     }
 
     private var callbackChannel: CallbackChannel?
@@ -63,13 +64,20 @@ class ESPProvisionProvider: NSObject {
         }
     }
 
-    public override init() {
-        self.deviceRegistry = DeviceRegistry(searchDeviceTimeout: searchDeviceTimeout, searchDeviceMaxIterations: searchDeviceMaxIterations)
+    init(timeSource: any TimeSource = SystemTimeSource()) {
+        self.timeSource = timeSource
+        self.deviceRegistry = DeviceRegistry(searchDeviceTimeout: searchDeviceTimeout,
+                                             searchDeviceMaxIterations: searchDeviceMaxIterations,
+                                             timeSource: timeSource)
         super.init()
     }
 
+    public override convenience init() {
+        self.init(timeSource: SystemTimeSource())
+    }
+
     public convenience init(apiURL: URL = URL(string: "http://localhost:8080/api/master")!) {
-        self.init()
+        self.init(timeSource: SystemTimeSource())
         self.apiURL = apiURL
     }
 
@@ -174,7 +182,8 @@ class ESPProvisionProvider: NSObject {
             wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
                                               callbackChannel: callbackChannel,
                                               searchWifiTimeout: searchWifiTimeout,
-                                              searchWifiMaxIterations: searchWifiMaxIterations)
+                                              searchWifiMaxIterations: searchWifiMaxIterations,
+                                              timeSource: timeSource)
         }
         wifiProvisioner!.startWifiScan()
     }
@@ -188,7 +197,8 @@ class ESPProvisionProvider: NSObject {
             wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
                                               callbackChannel: callbackChannel,
                                               searchWifiTimeout: searchWifiTimeout,
-                                              searchWifiMaxIterations: searchWifiMaxIterations)
+                                              searchWifiMaxIterations: searchWifiMaxIterations,
+                                              timeSource: timeSource)
         }
         wifiProvisioner?.sendWifiConfiguration(ssid: ssid, password: password)
     }
@@ -228,8 +238,9 @@ extension ESPProvisionProvider {
     public convenience init(searchDeviceTimeout: TimeInterval = 120, searchDeviceMaxIterations: Int = 25,
                             searchWifiTimeout: TimeInterval = 120, searchWifiMaxIterations: Int = 25,
                             deviceProvisionAPI: DeviceProvisionAPI? = nil, backendConnectionTimeout: TimeInterval? = nil,
-                            apiURL: URL = URL(string: "http://localhost:8080/api/master")!) {
-        self.init()
+                            apiURL: URL = URL(string: "http://localhost:8080/api/master")!,
+                            timeSource: (any TimeSource)? = nil) {
+        self.init(timeSource: timeSource ?? SystemTimeSource())
         self.searchDeviceTimeout = searchDeviceTimeout
         self.searchDeviceMaxIterations = searchDeviceMaxIterations
         self.deviceRegistry.searchDeviceMaxIterations = searchDeviceMaxIterations
@@ -239,7 +250,7 @@ extension ESPProvisionProvider {
         self.searchWifiMaxIterations = searchWifiMaxIterations
 
         self.deviceProvisionFactory = {
-            let deviceProvision = DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: apiURL)
+            let deviceProvision = DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: apiURL, timeSource: self.timeSource)
             if let deviceProvisionAPI {
                 deviceProvision.deviceProvisionAPI = deviceProvisionAPI
             }
