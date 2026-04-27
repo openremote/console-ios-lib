@@ -37,6 +37,148 @@ struct MockResponse {
     }
 }
 
+private final class ManualWifiScanController {
+    typealias CompletionHandler = ([ESPWifiNetwork]?, ESPWiFiScanError?) -> Void
+
+    private let lock = NSLock()
+    private var manualMode = false
+    private var pendingScans = [CompletionHandler]()
+
+    func setManualMode(_ manualMode: Bool) {
+        lock.lock()
+        self.manualMode = manualMode
+        lock.unlock()
+    }
+
+    func isManualModeEnabled() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return manualMode
+    }
+
+    func enqueuePendingScan(_ completionHandler: @escaping CompletionHandler) {
+        lock.lock()
+        pendingScans.append(completionHandler)
+        lock.unlock()
+    }
+
+    func dequeuePendingScan() -> CompletionHandler? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !pendingScans.isEmpty else {
+            return nil
+        }
+        return pendingScans.removeFirst()
+    }
+}
+
+private final class SendDataController {
+    typealias CompletionHandler = (Data?, ESPSessionError?) -> Void
+
+    private struct PendingRequest {
+        let completionHandler: CompletionHandler
+    }
+
+    private let lock = NSLock()
+    private var manualMode = false
+    private var pendingRequests = [PendingRequest]()
+    private var pendingRequestWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+    private var mockResponses = [MockResponse]()
+    private var mockResponsesIndex: [MockResponse].Index? = nil
+
+    func setManualMode(_ manualMode: Bool) {
+        lock.lock()
+        self.manualMode = manualMode
+        lock.unlock()
+    }
+
+    func isManualModeEnabled() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return manualMode
+    }
+
+    func resetMockResponses() {
+        lock.lock()
+        mockResponses = []
+        mockResponsesIndex = nil
+        lock.unlock()
+    }
+
+    func addMockResponse(_ response: MockResponse) {
+        lock.lock()
+        mockResponses.append(response)
+        lock.unlock()
+    }
+
+    func enqueuePendingRequest(_ completionHandler: @escaping CompletionHandler) {
+        var waitersToResume = [CheckedContinuation<Void, Never>]()
+
+        lock.lock()
+        pendingRequests.append(PendingRequest(completionHandler: completionHandler))
+        let pendingRequestCount = pendingRequests.count
+        let readyWaiters = pendingRequestWaiters.filter { pendingRequestCount >= $0.targetCount }
+        pendingRequestWaiters.removeAll { pendingRequestCount >= $0.targetCount }
+        waitersToResume = readyWaiters.map(\.continuation)
+        lock.unlock()
+
+        for continuation in waitersToResume {
+            continuation.resume()
+        }
+    }
+
+    func waitForPendingRequests(atLeast targetCount: Int) async {
+        if hasPendingRequests(atLeast: targetCount) {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if pendingRequests.count >= targetCount {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            pendingRequestWaiters.append((targetCount, continuation))
+            lock.unlock()
+        }
+    }
+
+    private func hasPendingRequests(atLeast targetCount: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return pendingRequests.count >= targetCount
+    }
+
+    func dequeuePendingRequest() -> CompletionHandler? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !pendingRequests.isEmpty else {
+            return nil
+        }
+        return pendingRequests.removeFirst().completionHandler
+    }
+
+    func getNextMockResponse() -> MockResponse? {
+        lock.lock()
+        defer { lock.unlock() }
+        if mockResponses.isEmpty {
+            return nil
+        }
+        if let currentIndex = mockResponsesIndex {
+            let nextIndex = mockResponses.index(after: currentIndex)
+            if nextIndex >= mockResponses.endIndex {
+                mockResponsesIndex = mockResponses.startIndex
+            } else {
+                mockResponsesIndex = nextIndex
+            }
+        } else {
+            mockResponsesIndex = mockResponses.startIndex
+        }
+        return mockResponses[mockResponsesIndex!]
+    }
+}
+
 private actor WifiScanCompletionTracker {
     private var startedScanCount = 0
     private var completedScanCount = 0
@@ -88,13 +230,23 @@ private actor WifiScanCompletionTracker {
 
 class ORESPDeviceMock: ORESPDevice {
 
-    private var mockResponses: [MockResponse] = []
-    private var mockResponsesIndex: [MockResponse].Index? = nil
+    private let manualWifiScanController = ManualWifiScanController()
+    private let sendDataController = SendDataController()
     private let wifiScanCompletionTracker = WifiScanCompletionTracker()
 
     var scanWifiListCallCount = 0
     var scanWifiDuration: TimeInterval = 0
     var networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
+    var manualWifiScans = false {
+        didSet {
+            manualWifiScanController.setManualMode(manualWifiScans)
+        }
+    }
+    var manualSendDataResponses = false {
+        didSet {
+            sendDataController.setManualMode(manualSendDataResponses)
+        }
+    }
 
     var provisionError: ESPProvisionError?
     var provisionCalledCount = 0
@@ -115,16 +267,15 @@ class ORESPDeviceMock: ORESPDevice {
     var name: String
 
     func resetMockResponses() {
-        mockResponses = []
-        mockResponsesIndex = nil
+        sendDataController.resetMockResponses()
     }
 
     func addMockData(_ data: Data, delay: TimeInterval = 0) {
-        mockResponses.append(MockResponse(mockData: data, delay: delay))
+        sendDataController.addMockResponse(MockResponse(mockData: data, delay: delay))
     }
 
     func addMockError(_ error: ESPSessionError, delay: TimeInterval = 0) {
-        mockResponses.append(MockResponse(mockError: error, delay: delay))
+        sendDataController.addMockResponse(MockResponse(mockError: error, delay: delay))
     }
 
     func connect(delegate: (any ESPDeviceConnectionDelegate)?, completionHandler: @escaping (ESPSessionStatus) -> Void) {
@@ -140,13 +291,33 @@ class ORESPDeviceMock: ORESPDevice {
 
     func scanWifiList(completionHandler: @escaping ([ESPWifiNetwork]?, ESPWiFiScanError?) -> Void) {
         scanWifiListCallCount += 1
+        let scanResult = (networks, error: Optional<ESPWiFiScanError>.none)
+        let usesManualWifiScans = manualWifiScanController.isManualModeEnabled()
         Task {
             await wifiScanCompletionTracker.markScanStarted()
+
+            if usesManualWifiScans {
+                manualWifiScanController.enqueuePendingScan(completionHandler)
+                return
+            }
+
             if scanWifiDuration > 0 {
                 try await Task.sleep(nanoseconds: UInt64(scanWifiDuration * Double(NSEC_PER_SEC)))
             }
-            completionHandler(networks, nil)
             await wifiScanCompletionTracker.markScanCompleted()
+            completionHandler(scanResult.0, scanResult.error)
+        }
+    }
+
+    func completeNextWifiScan(networks: [ESPWifiNetwork]? = nil, error: ESPWiFiScanError? = nil) {
+        guard let completionHandler = manualWifiScanController.dequeuePendingScan() else {
+            Issue.record("No pending wifi scan to complete")
+            return
+        }
+
+        Task {
+            await wifiScanCompletionTracker.markScanCompleted()
+            completionHandler(networks ?? self.networks, error)
         }
     }
 
@@ -156,6 +327,18 @@ class ORESPDeviceMock: ORESPDevice {
 
     func waitForWifiScanCompletions(atLeast completedScanCount: Int) async {
         await wifiScanCompletionTracker.waitForCompletedScans(atLeast: completedScanCount)
+    }
+
+    func waitForPendingSendDataRequests(atLeast requestCount: Int) async {
+        await sendDataController.waitForPendingRequests(atLeast: requestCount)
+    }
+
+    func completeNextSendDataRequest(data: Data? = nil, error: ESPSessionError? = nil) {
+        guard let completionHandler = sendDataController.dequeuePendingRequest() else {
+            Issue.record("No pending sendData request to complete")
+            return
+        }
+        completionHandler(data, error)
     }
 
     func provision(ssid: String?, passPhrase: String?, threadOperationalDataset: Data?, completionHandler: @escaping (ESPProvisionStatus) -> Void) {
@@ -171,36 +354,25 @@ class ORESPDeviceMock: ORESPDevice {
 
     func sendData(path: String, data: Data, completionHandler: @escaping (Data?, ESPSessionError?) -> Void) {
         receivedData.append(data)
-        let response = getNextMockResponse()
+        if sendDataController.isManualModeEnabled() {
+            sendDataController.enqueuePendingRequest(completionHandler)
+            return
+        }
+
+        let response = sendDataController.getNextMockResponse()
         guard let response else {
             completionHandler(nil, nil)
             return
         }
+
+        if response.delay == 0 {
+            completionHandler(response.mockData, response.mockError)
+            return
+        }
+
         Task {
-            if response.delay > 0 {
-                try await Task.sleep(nanoseconds: UInt64(response.delay * Double(NSEC_PER_SEC)))
-            }
+            try await Task.sleep(nanoseconds: UInt64(response.delay * Double(NSEC_PER_SEC)))
             completionHandler(response.mockData, response.mockError)
         }
-    }
-
-    private func getNextMockResponse() -> MockResponse? {
-        if mockResponses.isEmpty {
-            return nil
-        } else {
-            if mockResponsesIndex != nil {
-                mockResponsesIndex = mockResponses.index(after: mockResponsesIndex!)
-                if mockResponsesIndex! >= mockResponses.endIndex {
-                    mockResponsesIndex = mockResponses.startIndex
-                    return mockResponses[mockResponsesIndex!]
-                } else {
-                    return mockResponses[mockResponsesIndex!]
-                }
-            } else {
-                mockResponsesIndex = mockResponses.startIndex
-                return mockResponses[mockResponsesIndex!]
-            }
-        }
-
     }
 }
