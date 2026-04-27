@@ -66,9 +66,14 @@ jobs:
           swiftlint lint --no-cache --quiet --config .swiftlint.yml --reporter json ORLib > swiftlint.json || true
 
       - name: Build and test
+        timeout-minutes: 20
         run: |
           xcodebuild test -project ORLib.xcodeproj -sdk iphoneos \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib -resultBundlePath ORLib.xcresult
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.5' -scheme ORLib \
+          -test-timeouts-enabled YES \
+          -default-test-execution-time-allowance 60 \
+          -maximum-test-execution-time-allowance 60 \
+          -resultBundlePath ORLib.xcresult
 
       - name: Upload XCResult bundle
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
