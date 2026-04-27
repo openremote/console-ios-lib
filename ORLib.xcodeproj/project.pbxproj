@@ -71,12 +71,13 @@
 		91F2165C2D887BCF008F9CA7 /* ORConfigChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */; };
 		91F2165E2D887BCF008F9CA7 /* DeviceRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216522D887BCF008F9CA7 /* DeviceRegistry.swift */; };
 		91F2165F2D887BCF008F9CA7 /* ORESPDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216572D887BCF008F9CA7 /* ORESPDevice.swift */; };
-		91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */; };
-		91F216612D887BCF008F9CA7 /* ESPProvisionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216532D887BCF008F9CA7 /* ESPProvisionProvider.swift */; };
-		91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */; };
-		91F216632D887BCF008F9CA7 /* DeviceConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216512D887BCF008F9CA7 /* DeviceConnection.swift */; };
-		91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216502D887BCF008F9CA7 /* CallbackChannel.swift */; };
-			91F216692D887C53008F9CA7 /* DeviceProvisionAPIMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */; };
+			91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */; };
+			91F216612D887BCF008F9CA7 /* ESPProvisionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216532D887BCF008F9CA7 /* ESPProvisionProvider.swift */; };
+			91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */; };
+			91F216632D887BCF008F9CA7 /* DeviceConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216512D887BCF008F9CA7 /* DeviceConnection.swift */; };
+			91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216502D887BCF008F9CA7 /* CallbackChannel.swift */; };
+			91F216702D887BCF008F9CA7 /* TimeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216712D887BCF008F9CA7 /* TimeSource.swift */; };
+				91F216692D887C53008F9CA7 /* DeviceProvisionAPIMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */; };
 			91F2166A2D887C53008F9CA7 /* ESPProvisionProviderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */; };
 			91F2166B2D887C53008F9CA7 /* ORESPDeviceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */; };
 			91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */; };
@@ -175,11 +176,12 @@
 		91F216522D887BCF008F9CA7 /* DeviceRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRegistry.swift; sourceTree = "<group>"; };
 		91F216532D887BCF008F9CA7 /* ESPProvisionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionProvider.swift; sourceTree = "<group>"; };
 		91F216542D887BCF008F9CA7 /* LoopDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopDetector.swift; sourceTree = "<group>"; };
-		91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannel.swift; sourceTree = "<group>"; };
-		91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelProtocol.swift; sourceTree = "<group>"; };
-		91F216572D887BCF008F9CA7 /* ORESPDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDevice.swift; sourceTree = "<group>"; };
-		91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WifiProvisioner.swift; sourceTree = "<group>"; };
-			91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvisionAPIMock.swift; sourceTree = "<group>"; };
+			91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannel.swift; sourceTree = "<group>"; };
+			91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelProtocol.swift; sourceTree = "<group>"; };
+			91F216572D887BCF008F9CA7 /* ORESPDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDevice.swift; sourceTree = "<group>"; };
+			91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WifiProvisioner.swift; sourceTree = "<group>"; };
+			91F216712D887BCF008F9CA7 /* TimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSource.swift; sourceTree = "<group>"; };
+				91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvisionAPIMock.swift; sourceTree = "<group>"; };
 			91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionProviderTest.swift; sourceTree = "<group>"; };
 			91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelTest.swift; sourceTree = "<group>"; };
 			91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDeviceMock.swift; sourceTree = "<group>"; };
@@ -366,13 +368,14 @@
 				91F216522D887BCF008F9CA7 /* DeviceRegistry.swift */,
 				91F216532D887BCF008F9CA7 /* ESPProvisionProvider.swift */,
 				91F216542D887BCF008F9CA7 /* LoopDetector.swift */,
-				91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */,
-				91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */,
-				91F216572D887BCF008F9CA7 /* ORESPDevice.swift */,
-				91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */,
-				91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */,
-				915CCC942EF163E8006B65AA /* DeviceProvisionAPI.swift */,
-				915CCC962EF16456006B65AA /* DeviceProvision.swift */,
+					91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */,
+					91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */,
+					91F216572D887BCF008F9CA7 /* ORESPDevice.swift */,
+					91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */,
+					91F216712D887BCF008F9CA7 /* TimeSource.swift */,
+					91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */,
+					915CCC942EF163E8006B65AA /* DeviceProvisionAPI.swift */,
+					915CCC962EF16456006B65AA /* DeviceProvision.swift */,
 			);
 			path = ESPProvision;
 			sourceTree = "<group>";
@@ -550,13 +553,14 @@
 				91F2165C2D887BCF008F9CA7 /* ORConfigChannel.swift in Sources */,
 				91DD55A12DE7306100957233 /* BLEPermissionsChecker.swift in Sources */,
 				91F2165E2D887BCF008F9CA7 /* DeviceRegistry.swift in Sources */,
-				91F2165F2D887BCF008F9CA7 /* ORESPDevice.swift in Sources */,
-				91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */,
-				91F216612D887BCF008F9CA7 /* ESPProvisionProvider.swift in Sources */,
-				91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */,
-				91F216632D887BCF008F9CA7 /* DeviceConnection.swift in Sources */,
-				915CCC952EF163E8006B65AA /* DeviceProvisionAPI.swift in Sources */,
-				91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */,
+					91F2165F2D887BCF008F9CA7 /* ORESPDevice.swift in Sources */,
+					91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */,
+					91F216612D887BCF008F9CA7 /* ESPProvisionProvider.swift in Sources */,
+					91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */,
+					91F216632D887BCF008F9CA7 /* DeviceConnection.swift in Sources */,
+					91F216702D887BCF008F9CA7 /* TimeSource.swift in Sources */,
+					915CCC952EF163E8006B65AA /* DeviceProvisionAPI.swift in Sources */,
+					91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */,
 				4CBDF2CA2AE2869D00C7D94C /* ApiManager.swift in Sources */,
 				4CBDF2CB2AE2869D00C7D94C /* ORTextInput.swift in Sources */,
 				914348322F05400200D4B3D3 /* ORConfigChannelProtocol.proto in Sources */,
