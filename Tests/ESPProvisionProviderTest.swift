@@ -83,6 +83,12 @@ private final class CallbackRecorder {
         return messages.count
     }
 
+    func messageCount(matchingAction action: String) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages.filter { ($0["action"] as? String) == action }.count
+    }
+
     private func wait(until waitCondition: WaitCondition, after trigger: (() -> Void)? = nil) async -> WaitResult {
         await withCheckedContinuation { continuation in
             lock.lock()
@@ -618,15 +624,15 @@ struct ESPProvisionProviderTest {
 
         provider.startWifiScan()
         await mockDevice.waitForWifiScanStarts(atLeast: 1)
-        mockDevice.completeNextWifiScan(networks: initialNetworks)
-
-        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
-        let firstReceivedData = firstReceivedMessages[0]
+        let firstReceivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.startWifiScan) {
+            mockDevice.completeNextWifiScan(networks: initialNetworks)
+        }
 
         mockDevice.networks = updatedNetworks
         await mockDevice.waitForWifiScanStarts(atLeast: 2)
-        mockDevice.completeNextWifiScan(networks: updatedNetworks)
-        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 2)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 2) {
+            mockDevice.completeNextWifiScan(networks: updatedNetworks)
+        }
         let receivedData = receivedMessages[1]
 
         await mockDevice.waitForWifiScanStarts(atLeast: 3)
@@ -1020,7 +1026,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.provisionDevice)
         #expect(receivedData["connected"] as? Bool == true)
-        #expect(callbackRecorder.messageCount() == 1)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
 
         #expect(mockDevice.receivedData.count == 3)
 
@@ -1105,7 +1111,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.provisionDevice)
         #expect(receivedData["connected"] as? Bool == true)
-        #expect(callbackRecorder.messageCount() == 1)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
 
         try #require(mockDevice.receivedData.count == 5)
 
@@ -1187,7 +1193,7 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["connected"] as? Bool != nil)
         #expect(receivedData["connected"] as? Bool == false)
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
-        #expect(callbackRecorder.messageCount() == 1)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
 
         #expect(mockDevice.receivedData.count == 3)
 
