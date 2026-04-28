@@ -345,10 +345,11 @@ class ORESPDeviceMock: ORESPDevice {
             Issue.record("No pending wifi scan to complete")
             return
         }
+        let resolvedNetworks = networks ?? self.networks
 
         Task {
             await wifiScanCompletionTracker.markScanCompleted()
-            completionHandler(networks ?? self.networks, error)
+            completionHandler(resolvedNetworks, error)
         }
     }
 

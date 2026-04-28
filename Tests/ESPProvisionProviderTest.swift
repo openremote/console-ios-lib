@@ -596,7 +596,9 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualWifiScans = true
-        mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
+        let initialNetworks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
+        let updatedNetworks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
+        mockDevice.networks = initialNetworks
         espProvisionMock.mockDevices = [mockDevice]
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
@@ -616,19 +618,19 @@ struct ESPProvisionProviderTest {
 
         provider.startWifiScan()
         await mockDevice.waitForWifiScanStarts(atLeast: 1)
-        mockDevice.completeNextWifiScan()
+        mockDevice.completeNextWifiScan(networks: initialNetworks)
 
         let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
         let firstReceivedData = firstReceivedMessages[0]
 
-        mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
+        mockDevice.networks = updatedNetworks
         await mockDevice.waitForWifiScanStarts(atLeast: 2)
-        mockDevice.completeNextWifiScan()
+        mockDevice.completeNextWifiScan(networks: updatedNetworks)
         let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 2)
         let receivedData = receivedMessages[1]
 
         await mockDevice.waitForWifiScanStarts(atLeast: 3)
-        mockDevice.completeNextWifiScan()
+        mockDevice.completeNextWifiScan(networks: updatedNetworks)
         await mockDevice.waitForWifiScanCompletions(atLeast: 3)
 
         #expect(mockDevice.scanWifiListCallCount >= 3)
