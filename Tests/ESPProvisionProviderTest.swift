@@ -404,20 +404,20 @@ struct ESPProvisionProviderTest {
         provider.setProvisionManager(espProvisionMock)
         defer { provider.stopDevicesScan() }
 
-        let firstCallbackRecorder = CallbackRecorder()
+        let callbackRecorder = CallbackRecorder()
         provider.sendDataCallback = { data in
-            firstCallbackRecorder.record(data)
+            callbackRecorder.record(data)
         }
 
         provider.startDevicesScan()
         await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
         espProvisionMock.completeNextDeviceScan()
 
-        let firstReceivedMessages = await firstCallbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
         let firstReceivedData = firstReceivedMessages[0]
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 1)
-        #expect(firstCallbackRecorder.messageCount() == 1)
+        #expect(callbackRecorder.messageCount() == 1)
 
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
         #expect(firstReceivedData["action"] as? String == Actions.startBleScan)
@@ -430,20 +430,15 @@ struct ESPProvisionProviderTest {
         #expect(device["id"] != nil)
 
         // Calling it a second time while the first is still on-going
-        let secondCallbackRecorder = CallbackRecorder()
-        provider.sendDataCallback = { data in
-            secondCallbackRecorder.record(data)
-        }
-
-        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
         provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
         espProvisionMock.completeNextDeviceScan()
 
-        let receivedMessages = await secondCallbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
-        let receivedData = receivedMessages[0]
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 2)
+        let receivedData = receivedMessages[1]
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 2)
-        #expect(secondCallbackRecorder.messageCount() == 1)
+        #expect(callbackRecorder.messageCount() == 2)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
@@ -829,12 +824,12 @@ struct ESPProvisionProviderTest {
         }
 
         provider.startWifiScan()
+        #expect(provider.wifiScanning)
         await mockDevice.waitForWifiScanStarts(atLeast: 1)
         mockDevice.completeNextWifiScan()
 
         let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
         var receivedData = firstReceivedMessages[0]
-        #expect(provider.wifiScanning)
 
         let network = (receivedData["networks"] as! [[String:Any]]).first!
 
@@ -898,12 +893,12 @@ struct ESPProvisionProviderTest {
         }
 
         provider.startWifiScan()
+        #expect(provider.wifiScanning)
         await mockDevice.waitForWifiScanStarts(atLeast: 1)
         mockDevice.completeNextWifiScan()
 
         let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
         var receivedData = firstReceivedMessages[0]
-        #expect(provider.wifiScanning)
 
         let network = (receivedData["networks"] as! [[String:Any]]).first!
 
