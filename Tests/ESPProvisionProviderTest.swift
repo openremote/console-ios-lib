@@ -205,8 +205,9 @@ struct ESPProvisionProviderTest {
     @Test func searchDevicesMultipleBatches() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -260,8 +261,9 @@ struct ESPProvisionProviderTest {
     @Test func testDisableStopsDeviceSearch() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -291,8 +293,9 @@ struct ESPProvisionProviderTest {
     @Test func testStopDeviceSearch() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -322,8 +325,9 @@ struct ESPProvisionProviderTest {
 
     @Test func testStopDeviceSearchNotStarted() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -379,8 +383,9 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
         espProvisionMock.mockDevices = []
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 120, searchDeviceMaxIterations: 5)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 120, searchDeviceMaxIterations: 5, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -472,8 +477,9 @@ struct ESPProvisionProviderTest {
     @Test func connectToDevice() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -515,8 +521,9 @@ struct ESPProvisionProviderTest {
     @Test func connectToDeviceFailsForInvalidId() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -557,8 +564,9 @@ struct ESPProvisionProviderTest {
 
     @Test func startWifiScanNotConnected() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -738,8 +746,9 @@ struct ESPProvisionProviderTest {
         mockDevice.manualWifiScans = true
         mockDevice.networks = []
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 120, searchWifiMaxIterations: 5)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 120, searchWifiMaxIterations: 5, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -814,8 +823,9 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -970,8 +980,9 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -996,6 +1007,7 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         var expectedDeviceInfo = Response.DeviceInfo()
         expectedDeviceInfo.deviceID = "123456789ABC"
@@ -1012,7 +1024,8 @@ struct ESPProvisionProviderTest {
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1072,6 +1085,7 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         var expectedDeviceInfo = Response.DeviceInfo()
         expectedDeviceInfo.deviceID = "123456789ABC"
@@ -1091,7 +1105,8 @@ struct ESPProvisionProviderTest {
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1239,8 +1254,9 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1262,13 +1278,15 @@ struct ESPProvisionProviderTest {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         espProvisionMock.mockDevices = [mockDevice]
 
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -1296,8 +1314,9 @@ struct ESPProvisionProviderTest {
 
     @Test func exitProvisioningNotConnected() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
