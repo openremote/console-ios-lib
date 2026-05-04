@@ -461,29 +461,41 @@ struct ESPProvisionProviderTest {
 
     @Test func connectToDevice() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
+
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let device = (firstReceivedMessages[0]["devices"] as! [[String:Any]]).first!
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
         #expect(provider.bleScanning)
 
-        let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [Actions.startBleScan, Actions.stopBleScan, Actions.connectToDevice]) {
             provider.connectTo(deviceId: device["id"] as! String)
         }
         #expect(provider.bleScanning == false)
 
         #expect(espProvisionMock.stopESPDevicesSearchCallCount == 1)
 
-        #expect(receivedMessages.count == 2)
+        #expect(receivedMessages.count == 3)
 
-        var receivedData = receivedMessages[0]
+        var receivedData = receivedMessages[1]
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.stopBleScan)
 
-        receivedData = receivedMessages[1]
+        receivedData = receivedMessages[2]
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.connectToDevice)
         #expect(receivedData["id"] as? String == device["id"] as? String)
@@ -492,23 +504,29 @@ struct ESPProvisionProviderTest {
 
     @Test func connectToDeviceFailsForInvalidId() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
 
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
-        #expect(provider.bleScanning)
-
         let callbackRecorder = CallbackRecorder()
         provider.sendDataCallback = { data in
             callbackRecorder.record(data)
         }
 
-        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.connectToDevice) {
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+        _ = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+        #expect(provider.bleScanning)
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [Actions.startBleScan, Actions.stopBleScan, Actions.connectToDevice]) {
             provider.connectTo(deviceId: "INVALID_ID")
         }
+        let receivedData = receivedMessages[2]
 
         #expect(espProvisionMock.stopESPDevicesSearchCallCount == 1)
         #expect(provider.bleScanning == false)
@@ -535,7 +553,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -560,7 +578,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
         defer { provider.stopWifiScan() }
@@ -612,7 +630,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
         defer { provider.stopWifiScan() }
@@ -677,7 +695,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -716,7 +734,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -755,7 +773,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -791,7 +809,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -823,7 +841,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
         let callbackRecorder = CallbackRecorder()
@@ -892,7 +910,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
         let callbackRecorder = CallbackRecorder()
@@ -945,7 +963,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -986,7 +1004,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -1065,7 +1083,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -1149,7 +1167,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -1214,7 +1232,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.provisionDevice) {
             provider.provisionDevice(userToken: "OAUTH_TOKEN")
@@ -1242,7 +1260,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -1271,7 +1289,7 @@ struct ESPProvisionProviderTest {
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -1302,25 +1320,35 @@ struct ESPProvisionProviderTest {
         return (receivedData["success"] as! Bool)
     }
 
-    private func getDevice(provider: ESPProvisionProvider) async -> [String: Any] {
+    private func discoverDeviceAndStopScan(provider: ESPProvisionProvider) async -> [String: Any] {
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.startBleScan) {
             provider.startDevicesScan()
         }
+        provider.stopDevicesScan()
 
         return (receivedData["devices"] as! [[String:Any]]).first!
     }
 
     private func connectToDevice(provider: ESPProvisionProvider, deviceId: String) async throws {
-        let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
-            provider.connectTo(deviceId: deviceId)
+        if provider.bleScanning {
+            let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
+                provider.connectTo(deviceId: deviceId)
+            }
+
+            #expect(receivedMessages.count == 2)
+
+            let receivedData = receivedMessages[0]
+            #expect(receivedData["provider"] as? String == Providers.espprovision)
+            #expect(receivedData["action"] as? String == Actions.stopBleScan)
+            #expect(receivedData.count == 2)
+        } else {
+            let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.connectToDevice) {
+                provider.connectTo(deviceId: deviceId)
+            }
+
+            #expect(receivedData["provider"] as? String == Providers.espprovision)
+            #expect(receivedData["action"] as? String == Actions.connectToDevice)
         }
-
-        #expect(receivedMessages.count == 2)
-
-        let receivedData = receivedMessages[0]
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.stopBleScan)
-        #expect(receivedData.count == 2)
     }
 
     private func waitForMessage(provider: ESPProvisionProvider, expectingAction action: String, afterCalling trigger: @escaping () -> Void) async -> [String:Any] {
@@ -1329,8 +1357,7 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [action], after: trigger)
-        return receivedMessages[0]
+        return await callbackRecorder.waitForFirstMessage(matchingAction: action, after: trigger)
     }
 
     private func waitForMessages(provider: ESPProvisionProvider, expectingActions actions: [String], afterCalling trigger: @escaping () -> Void) async -> [[String:Any]] {
