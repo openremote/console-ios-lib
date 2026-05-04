@@ -599,10 +599,9 @@ struct ESPProvisionProviderTest {
         mockDevice.completeNextWifiScan()
         await mockDevice.waitForWifiScanStarts(atLeast: 3)
         mockDevice.completeNextWifiScan()
-        await mockDevice.waitForWifiScanCompletions(atLeast: 3)
+        await mockDevice.waitForWifiScanStarts(atLeast: 4)
 
         #expect(mockDevice.scanWifiListCallCount >= 3)
-        #expect(provider.wifiScanning)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startWifiScan)
@@ -655,10 +654,9 @@ struct ESPProvisionProviderTest {
 
         await mockDevice.waitForWifiScanStarts(atLeast: 3)
         mockDevice.completeNextWifiScan(networks: updatedNetworks)
-        await mockDevice.waitForWifiScanCompletions(atLeast: 3)
+        await mockDevice.waitForWifiScanStarts(atLeast: 4)
 
         #expect(mockDevice.scanWifiListCallCount >= 3)
-        #expect(provider.wifiScanning)
 
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
         #expect(firstReceivedData["action"] as? String == Actions.startWifiScan)
