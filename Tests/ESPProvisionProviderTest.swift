@@ -161,8 +161,10 @@ struct ESPProvisionProviderTest {
 
     @Test func searchDeviceSuccess() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -173,11 +175,18 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        let receivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.startBleScan) {
-            provider.startDevicesScan()
-        }
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
 
-        await espProvisionMock.waitForCompletedDeviceSearchRequests(atLeast: 3)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let receivedData = receivedMessages[0]
+
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+        espProvisionMock.completeNextDeviceScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 3)
+        espProvisionMock.completeNextDeviceScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 4)
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 3)
         #expect(callbackRecorder.messageCount() == 1)
