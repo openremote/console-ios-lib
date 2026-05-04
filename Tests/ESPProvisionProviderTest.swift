@@ -403,8 +403,9 @@ struct ESPProvisionProviderTest {
     @Test func multipleSearchDevices() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
