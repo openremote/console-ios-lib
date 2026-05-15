@@ -25,6 +25,8 @@ import Testing
 @testable import ORLib
 
 private final class CallbackRecorder {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+
     private enum WaitCondition {
         case action(name: String, count: Int)
         case orderedActions([String])
@@ -39,6 +41,7 @@ private final class CallbackRecorder {
     private var messages = [[String:Any]]()
     private var waitCondition: WaitCondition?
     private var continuation: CheckedContinuation<WaitResult, Never>?
+    private var waiterId: UUID?
 
     func record(_ data: [String:Any]) {
         var continuationToResume: CheckedContinuation<WaitResult, Never>?
@@ -91,6 +94,8 @@ private final class CallbackRecorder {
 
     private func wait(until waitCondition: WaitCondition, after trigger: (() -> Void)? = nil) async -> WaitResult {
         await withCheckedContinuation { continuation in
+            let waiterId = UUID()
+
             lock.lock()
             if let matchedMessages = matchedMessages(for: waitCondition, in: messages) {
                 let waitResult = WaitResult(matchedMessages: matchedMessages, allMessagesAtMatchTime: messages)
@@ -100,9 +105,39 @@ private final class CallbackRecorder {
             }
             self.waitCondition = waitCondition
             self.continuation = continuation
+            self.waiterId = waiterId
             lock.unlock()
 
+            Task { [weak self] in
+                await self?.timeoutWait(waiterId: waiterId, waitCondition: waitCondition)
+            }
             trigger?()
+        }
+    }
+
+    private func timeoutWait(waiterId: UUID, waitCondition: WaitCondition) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+
+        var continuationToResume: CheckedContinuation<WaitResult, Never>?
+        var waitResult: WaitResult?
+        var observedActions = [String]()
+
+        lock.lock()
+        if self.waiterId == waiterId {
+            let allMessagesAtMatchTime = messages
+            continuationToResume = continuation
+            waitResult = WaitResult(matchedMessages: matchedMessages(for: waitCondition, in: messages) ?? [],
+                                    allMessagesAtMatchTime: allMessagesAtMatchTime)
+            observedActions = allMessagesAtMatchTime.compactMap { $0["action"] as? String }
+            self.waitCondition = nil
+            self.continuation = nil
+            self.waiterId = nil
+        }
+        lock.unlock()
+
+        if let continuationToResume, let waitResult {
+            Issue.record("Timed out waiting for \(description(for: waitCondition)); observed actions \(observedActions)")
+            continuationToResume.resume(returning: waitResult)
         }
     }
 
@@ -117,6 +152,15 @@ private final class CallbackRecorder {
 
         case let .orderedActions(actions):
             return orderedMessages(matchingActions: actions, in: recordedMessages)
+        }
+    }
+
+    private func description(for waitCondition: WaitCondition) -> String {
+        switch waitCondition {
+        case let .action(name, count):
+            return "\(count) message(s) matching action \(name)"
+        case let .orderedActions(actions):
+            return "ordered actions \(actions)"
         }
     }
 

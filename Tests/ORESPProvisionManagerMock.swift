@@ -25,11 +25,18 @@ import Testing
 @testable import ORLib
 
 private final class ManualDeviceScanController {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+    private struct RequestWaiter {
+        let id: UUID
+        let targetCount: Int
+        let continuation: CheckedContinuation<Void, Never>
+    }
+
     private let lock = NSLock()
     private var manualMode = false
     private var pendingRequests = [CheckedContinuation<[ORESPDevice], Error>]()
     private var enqueuedRequestCount = 0
-    private var requestWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+    private var requestWaiters = [RequestWaiter]()
 
     func setManualMode(_ manualMode: Bool) {
         lock.lock()
@@ -44,18 +51,18 @@ private final class ManualDeviceScanController {
     }
 
     func enqueuePendingRequest(_ continuation: CheckedContinuation<[ORESPDevice], Error>) {
-        var waitersToResume = [CheckedContinuation<Void, Never>]()
+        var waitersToResume = [RequestWaiter]()
 
         lock.lock()
         pendingRequests.append(continuation)
         enqueuedRequestCount += 1
         let readyWaiters = requestWaiters.filter { enqueuedRequestCount >= $0.targetCount }
         requestWaiters.removeAll { enqueuedRequestCount >= $0.targetCount }
-        waitersToResume = readyWaiters.map(\.continuation)
+        waitersToResume = readyWaiters
         lock.unlock()
 
-        for continuation in waitersToResume {
-            continuation.resume()
+        for waiter in waitersToResume {
+            waiter.continuation.resume()
         }
     }
 
@@ -82,14 +89,38 @@ private final class ManualDeviceScanController {
         }
 
         await withCheckedContinuation { continuation in
+            let waiterId = UUID()
             lock.lock()
             if enqueuedRequestCount >= targetCount {
                 lock.unlock()
                 continuation.resume()
                 return
             }
-            requestWaiters.append((targetCount, continuation))
+            requestWaiters.append(RequestWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
             lock.unlock()
+
+            Task { [weak self] in
+                await self?.timeoutRequestWaiter(id: waiterId, targetCount: targetCount)
+            }
+        }
+    }
+
+    private func timeoutRequestWaiter(id: UUID, targetCount: Int) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+
+        var waiterToResume: RequestWaiter?
+        var observedCount = 0
+
+        lock.lock()
+        if let waiterIndex = requestWaiters.firstIndex(where: { $0.id == id }) {
+            waiterToResume = requestWaiters.remove(at: waiterIndex)
+            observedCount = enqueuedRequestCount
+        }
+        lock.unlock()
+
+        if let waiterToResume {
+            Issue.record("Timed out waiting for at least \(targetCount) device search request(s); observed \(observedCount)")
+            waiterToResume.continuation.resume()
         }
     }
 
@@ -102,10 +133,17 @@ private final class ManualDeviceScanController {
 
 final class ORESPProvisionManagerMock: ORESPProvisionManager {
     private actor DeviceScanCompletionTracker {
+        private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+        private struct ScanWaiter {
+            let id: UUID
+            let targetCount: Int
+            let continuation: CheckedContinuation<Void, Never>
+        }
+
         private var startedScanCount = 0
         private var completedScanCount = 0
-        private var startWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
-        private var waiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+        private var startWaiters = [ScanWaiter]()
+        private var waiters = [ScanWaiter]()
 
         func markScanStarted() {
             startedScanCount += 1
@@ -135,7 +173,11 @@ final class ORESPProvisionManagerMock: ORESPProvisionManager {
             }
 
             await withCheckedContinuation { continuation in
-                startWaiters.append((targetCount, continuation))
+                let waiterId = UUID()
+                startWaiters.append(ScanWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
+                Task {
+                    await self.timeoutStartedScanWaiter(id: waiterId, targetCount: targetCount)
+                }
             }
         }
 
@@ -145,8 +187,34 @@ final class ORESPProvisionManagerMock: ORESPProvisionManager {
             }
 
             await withCheckedContinuation { continuation in
-                waiters.append((targetCount, continuation))
+                let waiterId = UUID()
+                waiters.append(ScanWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
+                Task {
+                    await self.timeoutCompletedScanWaiter(id: waiterId, targetCount: targetCount)
+                }
             }
+        }
+
+        private func timeoutStartedScanWaiter(id: UUID, targetCount: Int) async {
+            try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+            guard let waiterIndex = startWaiters.firstIndex(where: { $0.id == id }) else {
+                return
+            }
+
+            let waiter = startWaiters.remove(at: waiterIndex)
+            Issue.record("Timed out waiting for at least \(targetCount) device scan start(s); observed \(startedScanCount)")
+            waiter.continuation.resume()
+        }
+
+        private func timeoutCompletedScanWaiter(id: UUID, targetCount: Int) async {
+            try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+            guard let waiterIndex = waiters.firstIndex(where: { $0.id == id }) else {
+                return
+            }
+
+            let waiter = waiters.remove(at: waiterIndex)
+            Issue.record("Timed out waiting for at least \(targetCount) device scan completion(s); observed \(completedScanCount)")
+            waiter.continuation.resume()
         }
     }
 

@@ -38,13 +38,20 @@ struct MockResponse {
 }
 
 private final class ManualWifiScanController {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+
     typealias CompletionHandler = ([ESPWifiNetwork]?, ESPWiFiScanError?) -> Void
+    private struct ScanWaiter {
+        let id: UUID
+        let targetCount: Int
+        let continuation: CheckedContinuation<Void, Never>
+    }
 
     private let lock = NSLock()
     private var manualMode = false
     private var pendingScans = [CompletionHandler]()
     private var enqueuedScanCount = 0
-    private var scanWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+    private var scanWaiters = [ScanWaiter]()
 
     func setManualMode(_ manualMode: Bool) {
         lock.lock()
@@ -59,18 +66,18 @@ private final class ManualWifiScanController {
     }
 
     func enqueuePendingScan(_ completionHandler: @escaping CompletionHandler) {
-        var waitersToResume = [CheckedContinuation<Void, Never>]()
+        var waitersToResume = [ScanWaiter]()
 
         lock.lock()
         pendingScans.append(completionHandler)
         enqueuedScanCount += 1
         let readyWaiters = scanWaiters.filter { enqueuedScanCount >= $0.targetCount }
         scanWaiters.removeAll { enqueuedScanCount >= $0.targetCount }
-        waitersToResume = readyWaiters.map(\.continuation)
+        waitersToResume = readyWaiters
         lock.unlock()
 
-        for continuation in waitersToResume {
-            continuation.resume()
+        for waiter in waitersToResume {
+            waiter.continuation.resume()
         }
     }
 
@@ -89,14 +96,38 @@ private final class ManualWifiScanController {
         }
 
         await withCheckedContinuation { continuation in
+            let waiterId = UUID()
             lock.lock()
             if enqueuedScanCount >= targetCount {
                 lock.unlock()
                 continuation.resume()
                 return
             }
-            scanWaiters.append((targetCount, continuation))
+            scanWaiters.append(ScanWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
             lock.unlock()
+
+            Task { [weak self] in
+                await self?.timeoutScanWaiter(id: waiterId, targetCount: targetCount)
+            }
+        }
+    }
+
+    private func timeoutScanWaiter(id: UUID, targetCount: Int) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+
+        var waiterToResume: ScanWaiter?
+        var observedCount = 0
+
+        lock.lock()
+        if let waiterIndex = scanWaiters.firstIndex(where: { $0.id == id }) {
+            waiterToResume = scanWaiters.remove(at: waiterIndex)
+            observedCount = enqueuedScanCount
+        }
+        lock.unlock()
+
+        if let waiterToResume {
+            Issue.record("Timed out waiting for at least \(targetCount) Wi-Fi scan start(s); observed \(observedCount)")
+            waiterToResume.continuation.resume()
         }
     }
 
@@ -108,16 +139,23 @@ private final class ManualWifiScanController {
 }
 
 private final class SendDataController {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+
     typealias CompletionHandler = (Data?, ESPSessionError?) -> Void
 
     private struct PendingRequest {
         let completionHandler: CompletionHandler
     }
+    private struct PendingRequestWaiter {
+        let id: UUID
+        let targetCount: Int
+        let continuation: CheckedContinuation<Void, Never>
+    }
 
     private let lock = NSLock()
     private var manualMode = false
     private var pendingRequests = [PendingRequest]()
-    private var pendingRequestWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+    private var pendingRequestWaiters = [PendingRequestWaiter]()
     private var mockResponses = [MockResponse]()
     private var mockResponsesIndex: [MockResponse].Index? = nil
 
@@ -147,18 +185,18 @@ private final class SendDataController {
     }
 
     func enqueuePendingRequest(_ completionHandler: @escaping CompletionHandler) {
-        var waitersToResume = [CheckedContinuation<Void, Never>]()
+        var waitersToResume = [PendingRequestWaiter]()
 
         lock.lock()
         pendingRequests.append(PendingRequest(completionHandler: completionHandler))
         let pendingRequestCount = pendingRequests.count
         let readyWaiters = pendingRequestWaiters.filter { pendingRequestCount >= $0.targetCount }
         pendingRequestWaiters.removeAll { pendingRequestCount >= $0.targetCount }
-        waitersToResume = readyWaiters.map(\.continuation)
+        waitersToResume = readyWaiters
         lock.unlock()
 
-        for continuation in waitersToResume {
-            continuation.resume()
+        for waiter in waitersToResume {
+            waiter.continuation.resume()
         }
     }
 
@@ -168,14 +206,40 @@ private final class SendDataController {
         }
 
         await withCheckedContinuation { continuation in
+            let waiterId = UUID()
             lock.lock()
             if pendingRequests.count >= targetCount {
                 lock.unlock()
                 continuation.resume()
                 return
             }
-            pendingRequestWaiters.append((targetCount, continuation))
+            pendingRequestWaiters.append(PendingRequestWaiter(id: waiterId,
+                                                              targetCount: targetCount,
+                                                              continuation: continuation))
             lock.unlock()
+
+            Task { [weak self] in
+                await self?.timeoutPendingRequestWaiter(id: waiterId, targetCount: targetCount)
+            }
+        }
+    }
+
+    private func timeoutPendingRequestWaiter(id: UUID, targetCount: Int) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+
+        var waiterToResume: PendingRequestWaiter?
+        var observedCount = 0
+
+        lock.lock()
+        if let waiterIndex = pendingRequestWaiters.firstIndex(where: { $0.id == id }) {
+            waiterToResume = pendingRequestWaiters.remove(at: waiterIndex)
+            observedCount = pendingRequests.count
+        }
+        lock.unlock()
+
+        if let waiterToResume {
+            Issue.record("Timed out waiting for at least \(targetCount) pending sendData request(s); observed \(observedCount)")
+            waiterToResume.continuation.resume()
         }
     }
 
@@ -215,10 +279,17 @@ private final class SendDataController {
 }
 
 private actor WifiScanCompletionTracker {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
+    private struct ScanWaiter {
+        let id: UUID
+        let targetCount: Int
+        let continuation: CheckedContinuation<Void, Never>
+    }
+
     private var startedScanCount = 0
     private var completedScanCount = 0
-    private var startWaiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
-    private var waiters = [(targetCount: Int, continuation: CheckedContinuation<Void, Never>)]()
+    private var startWaiters = [ScanWaiter]()
+    private var waiters = [ScanWaiter]()
 
     func markScanStarted() {
         startedScanCount += 1
@@ -248,7 +319,11 @@ private actor WifiScanCompletionTracker {
         }
 
         await withCheckedContinuation { continuation in
-            startWaiters.append((targetCount, continuation))
+            let waiterId = UUID()
+            startWaiters.append(ScanWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
+            Task {
+                await self.timeoutStartedScanWaiter(id: waiterId, targetCount: targetCount)
+            }
         }
     }
 
@@ -258,8 +333,34 @@ private actor WifiScanCompletionTracker {
         }
 
         await withCheckedContinuation { continuation in
-            waiters.append((targetCount, continuation))
+            let waiterId = UUID()
+            waiters.append(ScanWaiter(id: waiterId, targetCount: targetCount, continuation: continuation))
+            Task {
+                await self.timeoutCompletedScanWaiter(id: waiterId, targetCount: targetCount)
+            }
         }
+    }
+
+    private func timeoutStartedScanWaiter(id: UUID, targetCount: Int) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+        guard let waiterIndex = startWaiters.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+
+        let waiter = startWaiters.remove(at: waiterIndex)
+        Issue.record("Timed out waiting for at least \(targetCount) Wi-Fi scan start(s); observed \(startedScanCount)")
+        waiter.continuation.resume()
+    }
+
+    private func timeoutCompletedScanWaiter(id: UUID, targetCount: Int) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+        guard let waiterIndex = waiters.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+
+        let waiter = waiters.remove(at: waiterIndex)
+        Issue.record("Timed out waiting for at least \(targetCount) Wi-Fi scan completion(s); observed \(completedScanCount)")
+        waiter.continuation.resume()
     }
 }
 
