@@ -64,13 +64,14 @@ class DeviceRegistry {
 
     var callbackChannel: CallbackChannel?
 
+    private let timeSource: any TimeSource
     private var loopDetector: LoopDetector
     var searchDeviceTimeout: TimeInterval {
         get {
             loopDetector.timeout
         }
         set {
-            self.loopDetector = LoopDetector(timeout: newValue, maxIterations: searchDeviceMaxIterations)
+            self.loopDetector.timeout = newValue
         }
 
     }
@@ -79,7 +80,7 @@ class DeviceRegistry {
             loopDetector.maxIterations
         }
         set {
-            self.loopDetector = LoopDetector(timeout: searchDeviceTimeout, maxIterations: newValue)
+            self.loopDetector.maxIterations = newValue
         }
 
     }
@@ -92,8 +93,9 @@ class DeviceRegistry {
 
     public private(set) var bleScanning = false
 
-    init(searchDeviceTimeout: TimeInterval, searchDeviceMaxIterations: Int) {
-        self.loopDetector = LoopDetector(timeout: searchDeviceTimeout, maxIterations: searchDeviceMaxIterations)
+    init(searchDeviceTimeout: TimeInterval, searchDeviceMaxIterations: Int, timeSource: any TimeSource = SystemTimeSource()) {
+        self.timeSource = timeSource
+        self.loopDetector = LoopDetector(timeout: searchDeviceTimeout, maxIterations: searchDeviceMaxIterations, timeSource: timeSource)
     }
 
     func enable() {
