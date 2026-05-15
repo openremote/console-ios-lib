@@ -1250,6 +1250,87 @@ struct ESPProvisionProviderTest {
         #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
     }
 
+    @Test func provisionDeviceFailureBackendConnectionFailed() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
+
+        var expectedDeviceInfo = Response.DeviceInfo()
+        expectedDeviceInfo.deviceID = "123456789ABC"
+        expectedDeviceInfo.modelName = "My Battery"
+
+        var expectedOpenRemoteConfig = Response.OpenRemoteConfig()
+        expectedOpenRemoteConfig.status = .success
+
+        var expectedBackendConnectionStatusFailure = Response.BackendConnectionStatus()
+        expectedBackendConnectionStatusFailure.status = .failed
+
+        espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
+
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
+                                            searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
+        _ = provider.initialize()
+        _ = await enable(provider: provider)
+        provider.setProvisionManager(espProvisionMock)
+
+        let device = await discoverDeviceAndStopScan(provider: provider)
+
+        try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
+
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
+
+        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+
+        var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
+        #expect(request.id == "0")
+        #expect(request.body == .deviceInfo(Request.DeviceInfo()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
+
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 1)
+        #expect(request.id == "1")
+        if case let .openRemoteConfig(openRemoteConfig) = request.body {
+            #expect(openRemoteConfig.realm == "master")
+            #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
+            #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
+            #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
+            #expect(openRemoteConfig.assetID == "AssetID")
+
+        } else {
+            Issue.record("Received an unexpected response: \(request)")
+        }
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
+
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 2)
+        #expect(request.id == "2")
+        #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)))
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.provisionDevice, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.provisionDevice)
+        #expect(receivedData["connected"] as? Bool == false)
+        #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.communicationError.rawValue)
+        #expect(receivedData["errorMessage"] as? String == "Backend connection failed")
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
+
+        #expect(mockDevice.receivedData.count == 3)
+
+        #expect(deviceProvisionAPIMock.provisionCallCount == 1)
+        #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
+        #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
+        #expect(deviceProvisionAPIMock.receivedPassword != nil)
+        #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+    }
+
     @Test func provisionDeviceNotConnected() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
