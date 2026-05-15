@@ -71,7 +71,7 @@ class DeviceRegistry {
             loopDetector.timeout
         }
         set {
-            self.loopDetector = LoopDetector(timeout: newValue, maxIterations: searchDeviceMaxIterations, timeSource: timeSource)
+            self.loopDetector.timeout = newValue
         }
 
     }
@@ -80,7 +80,7 @@ class DeviceRegistry {
             loopDetector.maxIterations
         }
         set {
-            self.loopDetector = LoopDetector(timeout: searchDeviceTimeout, maxIterations: newValue, timeSource: timeSource)
+            self.loopDetector.maxIterations = newValue
         }
 
     }

@@ -37,7 +37,7 @@ class WifiProvisioner {
             loopDetector.timeout
         }
         set {
-            self.loopDetector = LoopDetector(timeout: newValue, maxIterations: searchWifiMaxIterations, timeSource: timeSource)
+            self.loopDetector.timeout = newValue
         }
 
     }
@@ -46,7 +46,7 @@ class WifiProvisioner {
             loopDetector.maxIterations
         }
         set {
-            self.loopDetector = LoopDetector(timeout: searchWifiTimeout, maxIterations: newValue, timeSource: timeSource)
+            self.loopDetector.maxIterations = newValue
         }
 
     }

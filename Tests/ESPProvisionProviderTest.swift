@@ -414,6 +414,37 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
     }
 
+    @Test func searchDeviceSettingsChangeDuringScanDoesNotTimeout() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        espProvisionMock.mockDevices = []
+        let timeSource = TestTimeSource()
+
+        let callbackRecorder = CallbackRecorder()
+        let callbackChannel = CallbackChannel(sendDataCallback: { data in
+            callbackRecorder.record(data)
+        }, provider: Providers.espprovision)
+
+        let deviceRegistry = DeviceRegistry(searchDeviceTimeout: 120,
+                                            searchDeviceMaxIterations: Int.max,
+                                            timeSource: timeSource)
+        deviceRegistry.callbackChannel = callbackChannel
+        deviceRegistry.provisionManager = espProvisionMock
+        defer { deviceRegistry.stopDevicesScan(sendMessage: false) }
+
+        deviceRegistry.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+
+        deviceRegistry.searchDeviceTimeout = 60
+        deviceRegistry.searchDeviceMaxIterations = Int.max
+        espProvisionMock.completeNextDeviceScan(with: [])
+
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+
+        #expect(deviceRegistry.bleScanning)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.stopBleScan) == 0)
+    }
+
     @Test func multipleSearchDevices() async throws {
         let espProvisionMock = ORESPProvisionManagerMock()
         espProvisionMock.manualDeviceScans = true
@@ -779,6 +810,58 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.stopWifiScan)
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
+    }
+
+    @Test func wifiScanSettingsChangeDuringScanDoesNotTimeout() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let mockDevice = ORESPDeviceMock()
+        mockDevice.manualWifiScans = true
+        espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
+
+        let callbackRecorder = CallbackRecorder()
+        let callbackChannel = CallbackChannel(sendDataCallback: { data in
+            callbackRecorder.record(data)
+        }, provider: Providers.espprovision)
+
+        let deviceRegistry = DeviceRegistry(searchDeviceTimeout: 1,
+                                            searchDeviceMaxIterations: Int.max,
+                                            timeSource: timeSource)
+        deviceRegistry.callbackChannel = callbackChannel
+        deviceRegistry.provisionManager = espProvisionMock
+        defer { deviceRegistry.stopDevicesScan(sendMessage: false) }
+
+        deviceRegistry.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1) {
+            espProvisionMock.completeNextDeviceScan()
+        }
+        deviceRegistry.stopDevicesScan(sendMessage: false)
+
+        let devices = receivedMessages[0]["devices"] as! [[String:Any]]
+        let deviceId = devices[0]["id"] as! String
+        let deviceConnection = DeviceConnection(deviceRegistry: deviceRegistry, callbackChannel: callbackChannel)
+        deviceConnection.connectTo(deviceId: deviceId)
+
+        let wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
+                                              callbackChannel: callbackChannel,
+                                              searchWifiTimeout: 120,
+                                              searchWifiMaxIterations: Int.max,
+                                              timeSource: timeSource)
+        defer { wifiProvisioner.stopWifiScan(sendMessage: false) }
+
+        wifiProvisioner.startWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+
+        wifiProvisioner.searchWifiTimeout = 60
+        wifiProvisioner.searchWifiMaxIterations = Int.max
+        mockDevice.completeNextWifiScan(networks: [])
+
+        await mockDevice.waitForWifiScanStarts(atLeast: 2)
+
+        #expect(wifiProvisioner.wifiScanning)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.stopWifiScan) == 0)
     }
 
     @Test func testStopWifiScan() async throws {

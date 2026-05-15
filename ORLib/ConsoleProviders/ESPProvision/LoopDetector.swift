@@ -20,8 +20,8 @@
 import Foundation
 
 class LoopDetector {
-    let timeout: TimeInterval
-    let maxIterations: Int
+    var timeout: TimeInterval
+    var maxIterations: Int
 
     private let timeSource: any TimeSource
     private var startTime: TimeInterval?
