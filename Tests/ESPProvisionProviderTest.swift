@@ -24,24 +24,178 @@ import Testing
 
 @testable import ORLib
 
-class ESPORProvisionManagerMock: ORESPProvisionManager {
-    var searchESPDevicesCallCount = 0
-    var stopESPDevicesSearchCallCount = 0
+private final class CallbackRecorder {
+    private static let waitTimeoutNanoseconds: UInt64 = 5_000_000_000
 
-    var scanDevicesDuration: TimeInterval = 0
-
-    var mockDevices = [ORESPDeviceMock()]
-
-    func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity) async throws -> [ORESPDevice] {
-        searchESPDevicesCallCount += 1
-        if scanDevicesDuration > 0 {
-            try await Task.sleep(nanoseconds: UInt64(scanDevicesDuration * Double(NSEC_PER_SEC)))
-        }
-        return mockDevices
+    private enum WaitCondition {
+        case action(name: String, count: Int)
+        case orderedActions([String])
     }
 
-    func stopESPDevicesSearch() {
-        stopESPDevicesSearchCallCount += 1
+    private struct WaitResult {
+        let matchedMessages: [[String:Any]]
+        let allMessagesAtMatchTime: [[String:Any]]
+    }
+
+    private let lock = NSLock()
+    private var messages = [[String:Any]]()
+    private var waitCondition: WaitCondition?
+    private var continuation: CheckedContinuation<WaitResult, Never>?
+    private var waiterId: UUID?
+
+    func record(_ data: [String:Any]) {
+        var continuationToResume: CheckedContinuation<WaitResult, Never>?
+        var waitResult: WaitResult?
+
+        lock.lock()
+        messages.append(data)
+        if let waitCondition,
+           let continuation,
+           let matchedMessages = matchedMessages(for: waitCondition, in: messages) {
+            self.waitCondition = nil
+            self.continuation = nil
+            continuationToResume = continuation
+            waitResult = WaitResult(matchedMessages: matchedMessages, allMessagesAtMatchTime: messages)
+        }
+        lock.unlock()
+
+        if let continuationToResume, let waitResult {
+            continuationToResume.resume(returning: waitResult)
+        }
+    }
+
+    func waitForFirstMessage(matchingAction action: String, after trigger: @escaping () -> Void) async -> [String:Any] {
+        let messages = await waitForMessages(matchingAction: action, count: 1, after: trigger)
+        return messages[0]
+    }
+
+    func waitForMessages(matchingAction action: String, count: Int, after trigger: (() -> Void)? = nil) async -> [[String:Any]] {
+        let waitResult = await wait(until: .action(name: action, count: count), after: trigger)
+        return waitResult.matchedMessages
+    }
+
+    func waitForMessages(matchingActions actions: [String], after trigger: (() -> Void)? = nil) async -> [[String:Any]] {
+        let waitResult = await wait(until: .orderedActions(actions), after: trigger)
+        recordUnexpectedMessages(in: waitResult.allMessagesAtMatchTime, whileMatchingActions: actions)
+        return waitResult.matchedMessages
+    }
+
+    func messageCount() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages.count
+    }
+
+    func messageCount(matchingAction action: String) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return messages.filter { ($0["action"] as? String) == action }.count
+    }
+
+    private func wait(until waitCondition: WaitCondition, after trigger: (() -> Void)? = nil) async -> WaitResult {
+        await withCheckedContinuation { continuation in
+            let waiterId = UUID()
+
+            lock.lock()
+            if let matchedMessages = matchedMessages(for: waitCondition, in: messages) {
+                let waitResult = WaitResult(matchedMessages: matchedMessages, allMessagesAtMatchTime: messages)
+                lock.unlock()
+                continuation.resume(returning: waitResult)
+                return
+            }
+            self.waitCondition = waitCondition
+            self.continuation = continuation
+            self.waiterId = waiterId
+            lock.unlock()
+
+            Task { [weak self] in
+                await self?.timeoutWait(waiterId: waiterId, waitCondition: waitCondition)
+            }
+            trigger?()
+        }
+    }
+
+    private func timeoutWait(waiterId: UUID, waitCondition: WaitCondition) async {
+        try? await Task.sleep(nanoseconds: Self.waitTimeoutNanoseconds)
+
+        var continuationToResume: CheckedContinuation<WaitResult, Never>?
+        var waitResult: WaitResult?
+        var observedActions = [String]()
+
+        lock.lock()
+        if self.waiterId == waiterId {
+            let allMessagesAtMatchTime = messages
+            continuationToResume = continuation
+            waitResult = WaitResult(matchedMessages: matchedMessages(for: waitCondition, in: messages) ?? [],
+                                    allMessagesAtMatchTime: allMessagesAtMatchTime)
+            observedActions = allMessagesAtMatchTime.compactMap { $0["action"] as? String }
+            self.waitCondition = nil
+            self.continuation = nil
+            self.waiterId = nil
+        }
+        lock.unlock()
+
+        if let continuationToResume, let waitResult {
+            Issue.record("Timed out waiting for \(description(for: waitCondition)); observed actions \(observedActions)")
+            continuationToResume.resume(returning: waitResult)
+        }
+    }
+
+    private func matchedMessages(for waitCondition: WaitCondition, in recordedMessages: [[String:Any]]) -> [[String:Any]]? {
+        switch waitCondition {
+        case let .action(name, count):
+            let matchingMessages = recordedMessages.filter { ($0["action"] as? String) == name }
+            guard matchingMessages.count >= count else {
+                return nil
+            }
+            return Array(matchingMessages.prefix(count))
+
+        case let .orderedActions(actions):
+            return orderedMessages(matchingActions: actions, in: recordedMessages)
+        }
+    }
+
+    private func description(for waitCondition: WaitCondition) -> String {
+        switch waitCondition {
+        case let .action(name, count):
+            return "\(count) message(s) matching action \(name)"
+        case let .orderedActions(actions):
+            return "ordered actions \(actions)"
+        }
+    }
+
+    private func orderedMessages(matchingActions actions: [String], in recordedMessages: [[String:Any]]) -> [[String:Any]]? {
+        var matchingMessages = [[String:Any]]()
+        var actionIndex = 0
+
+        for message in recordedMessages {
+            guard actionIndex < actions.count else {
+                break
+            }
+
+            if (message["action"] as? String) == actions[actionIndex] {
+                matchingMessages.append(message)
+                actionIndex += 1
+            }
+        }
+
+        return actionIndex == actions.count ? matchingMessages : nil
+    }
+
+    private func recordUnexpectedMessages(in recordedMessages: [[String:Any]], whileMatchingActions actions: [String]) {
+        var actionIndex = 0
+
+        for message in recordedMessages {
+            guard actionIndex < actions.count else {
+                break
+            }
+
+            if (message["action"] as? String) == actions[actionIndex] {
+                actionIndex += 1
+            } else {
+                Issue.record("Received an unexpected action: \(message)")
+            }
+        }
     }
 }
 
@@ -50,35 +204,36 @@ struct ESPProvisionProviderTest {
     // MARK: device scan
 
     @Test func searchDeviceSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
+        defer { provider.stopDevicesScan() }
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startDevicesScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Even if I wait for a moment, if no new devices are discovered, I should only received the callback once
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
 
-        #expect(espProvisionMock.searchESPDevicesCallCount >= 1)
-        #expect(receivedCallbackCount == 1)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let receivedData = receivedMessages[0]
+
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+        espProvisionMock.completeNextDeviceScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 3)
+        espProvisionMock.completeNextDeviceScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 4)
+
+        #expect(espProvisionMock.searchESPDevicesCallCount >= 3)
+        #expect(callbackRecorder.messageCount() == 1)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
@@ -92,38 +247,37 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesMultipleBatches() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
+        defer { provider.stopDevicesScan() }
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        var firstReceivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    firstReceivedData = data
-                    espProvisionMock.mockDevices.append(ORESPDeviceMock(name: "TestDevice2"))
-                    continuation.resume()
-                }
-            }
-            provider.startDevicesScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Need to wait a moment for second callback to be received
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let firstReceivedData = firstReceivedMessages[0]
+
+        espProvisionMock.mockDevices.append(ORESPDeviceMock(name: "TestDevice2"))
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+        espProvisionMock.completeNextDeviceScan()
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 2)
+        let receivedData = receivedMessages[1]
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 2)
-        #expect(receivedCallbackCount == 2)
+        #expect(callbackRecorder.messageCount() == 2)
 
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
         #expect(firstReceivedData["action"] as? String == Actions.startBleScan)
@@ -149,10 +303,11 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testDisableStopsDeviceSearch() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
-        espProvisionMock.scanDevicesDuration = 0.5
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -163,15 +318,9 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
 
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
-
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                receivedData = data
-                continuation.resume()
-            }
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopBleScan) {
             _ = provider.disable()
         }
 
@@ -186,10 +335,11 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopDeviceSearch() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
-        espProvisionMock.scanDevicesDuration = 0.5
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
@@ -200,19 +350,9 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
 
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
-
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopBleScan) {
             provider.stopDevicesScan()
         }
 
@@ -228,24 +368,15 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopDeviceSearchNotStarted() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
-        espProvisionMock.scanDevicesDuration = 0.5
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopBleScan) {
             provider.stopDevicesScan()
         }
 
@@ -259,39 +390,32 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesTimesout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
         espProvisionMock.mockDevices = []
-        espProvisionMock.scanDevicesDuration = 0.05
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 0.2)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 0.2, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startDevicesScan()
-            #expect(provider.bleScanning)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+        provider.startDevicesScan()
+        #expect(provider.bleScanning)
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        timeSource.advance(by: 0.3)
+        espProvisionMock.completeNextDeviceScan(with: [])
 
-        // Ideally should be == 4 but too brittle based on timing during test run
-        #expect(espProvisionMock.searchESPDevicesCallCount >= 2 && espProvisionMock.searchESPDevicesCallCount <= 4)
-        #expect(receivedCallbackCount == 1)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.stopBleScan, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(espProvisionMock.searchESPDevicesCallCount == 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.bleScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -300,38 +424,33 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func searchDevicesMaximumIteration() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
         espProvisionMock.mockDevices = []
-        espProvisionMock.scanDevicesDuration = 0.05
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 120, searchDeviceMaxIterations: 5)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 120, searchDeviceMaxIterations: 5, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startDevicesScan()
-            #expect(provider.bleScanning)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+        provider.startDevicesScan()
+        #expect(provider.bleScanning)
+        for i in 1...5 {
+            await espProvisionMock.waitForDeviceSearchRequests(atLeast: i)
+            espProvisionMock.completeNextDeviceScan(with: [])
+        }
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.stopBleScan, count: 1)
+        let receivedData = receivedMessages[0]
 
         #expect(espProvisionMock.searchESPDevicesCallCount == 5)
-        #expect(receivedCallbackCount == 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.bleScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -339,68 +458,83 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
     }
 
-    @Test func multipleSearchDevices() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
-        espProvisionMock.scanDevicesDuration = 0.05
+    @Test func searchDeviceSettingsChangeDuringScanDoesNotTimeout() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        espProvisionMock.mockDevices = []
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let callbackRecorder = CallbackRecorder()
+        let callbackChannel = CallbackChannel(sendDataCallback: { data in
+            callbackRecorder.record(data)
+        }, provider: Providers.espprovision)
+
+        let deviceRegistry = DeviceRegistry(searchDeviceTimeout: 120,
+                                            searchDeviceMaxIterations: Int.max,
+                                            timeSource: timeSource)
+        deviceRegistry.callbackChannel = callbackChannel
+        deviceRegistry.provisionManager = espProvisionMock
+        defer { deviceRegistry.stopDevicesScan(sendMessage: false) }
+
+        deviceRegistry.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+
+        deviceRegistry.searchDeviceTimeout = 60
+        deviceRegistry.searchDeviceMaxIterations = Int.max
+        espProvisionMock.completeNextDeviceScan(with: [])
+
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+
+        #expect(deviceRegistry.bleScanning)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.stopBleScan) == 0)
+    }
+
+    @Test func multipleSearchDevices() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
+
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
+        defer { provider.stopDevicesScan() }
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startDevicesScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let firstReceivedData = firstReceivedMessages[0]
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 1)
-        #expect(receivedCallbackCount == 1)
+        #expect(callbackRecorder.messageCount() == 1)
 
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.startBleScan)
+        #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
+        #expect(firstReceivedData["action"] as? String == Actions.startBleScan)
 
-        try #require(receivedData["devices"] as? [[String:Any]] != nil)
-        var devices = receivedData["devices"] as! [[String:Any]]
+        try #require(firstReceivedData["devices"] as? [[String:Any]] != nil)
+        var devices = firstReceivedData["devices"] as! [[String:Any]]
         #expect(devices.count == 1)
         var device = devices.first!
         #expect(device["name"] as? String == "TestDevice")
         #expect(device["id"] != nil)
 
         // Calling it a second time while the first is still on-going
-        receivedData = [:]
-        receivedCallbackCount = 0
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
+        espProvisionMock.completeNextDeviceScan()
 
-            provider.startDevicesScan()
-        }
-
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 2)
+        let receivedData = receivedMessages[1]
 
         #expect(espProvisionMock.searchESPDevicesCallCount >= 2)
-        #expect(receivedCallbackCount == 1)
+        #expect(callbackRecorder.messageCount() == 2)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startBleScan)
@@ -416,30 +550,43 @@ struct ESPProvisionProviderTest {
     // MARK: Device connection
 
     @Test func connectToDevice() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
+
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        let device = (firstReceivedMessages[0]["devices"] as! [[String:Any]]).first!
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
         #expect(provider.bleScanning)
 
-        let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [Actions.startBleScan, Actions.stopBleScan, Actions.connectToDevice]) {
             provider.connectTo(deviceId: device["id"] as! String)
         }
         #expect(provider.bleScanning == false)
 
         #expect(espProvisionMock.stopESPDevicesSearchCallCount == 1)
 
-        #expect(receivedMessages.count == 2)
+        #expect(receivedMessages.count == 3)
 
-        var receivedData = receivedMessages[0]
+        var receivedData = receivedMessages[1]
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.stopBleScan)
 
-        receivedData = receivedMessages[1]
+        receivedData = receivedMessages[2]
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.connectToDevice)
         #expect(receivedData["id"] as? String == device["id"] as? String)
@@ -447,27 +594,31 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func connectToDeviceFailsForInvalidId() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
+        }
+
+        provider.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        espProvisionMock.completeNextDeviceScan()
+        _ = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1)
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 2)
         #expect(provider.bleScanning)
 
-        var receivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                if (data["action"] as? String) == Actions.connectToDevice {
-                    receivedData = data
-                    continuation.resume()
-                }
-            }
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingActions: [Actions.startBleScan, Actions.stopBleScan, Actions.connectToDevice]) {
             provider.connectTo(deviceId: "INVALID_ID")
         }
+        let receivedData = receivedMessages[2]
 
         #expect(espProvisionMock.stopESPDevicesSearchCallCount == 1)
         #expect(provider.bleScanning == false)
@@ -487,14 +638,15 @@ struct ESPProvisionProviderTest {
     // MARK: Wifi scan
 
     @Test func startWifiScanNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -509,38 +661,41 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScan() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-        var receivedData: [String:Any] = [:]
+        defer { provider.stopWifiScan() }
 
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startWifiScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Even if I wait for a moment, if no new devices are discovered, I should only received the callback once
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        provider.startWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+        mockDevice.completeNextWifiScan()
 
-        #expect(mockDevice.scanWifiListCallCount >= 1)
-        #expect(provider.wifiScanning)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
+        let receivedData = receivedMessages[0]
+
+        await mockDevice.waitForWifiScanStarts(atLeast: 2)
+        mockDevice.completeNextWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 3)
+        mockDevice.completeNextWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 4)
+
+        #expect(mockDevice.scanWifiListCallCount >= 3)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.startWifiScan)
@@ -551,43 +706,52 @@ struct ESPProvisionProviderTest {
         let network = networks.first!
         #expect(network["ssid"] as? String == "SSID-1")
         #expect(network["signalStrength"] as? Int32 == -50)
+        #expect(callbackRecorder.messageCount() == 1)
     }
 
     @Test func wifiScanUpdatedRssi() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.1
-        mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
+        mockDevice.manualWifiScans = true
+        let initialNetworks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -50)]
+        let updatedNetworks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
+        mockDevice.networks = initialNetworks
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-        var receivedData: [String:Any] = [:]
+        defer { provider.stopWifiScan() }
 
-        var firstReceivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    firstReceivedData = data
-                    mockDevice.networks = [ESPWifiNetwork(ssid: "SSID-1", rssi: -60)]
-                    continuation.resume()
-                }
-            }
-            provider.startWifiScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // I need to wait a moment for the second callback to be received
-        try await Task.sleep(nanoseconds: UInt64(0.2 * Double(NSEC_PER_SEC)))
-        #expect(provider.wifiScanning)
+        provider.startWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+        let firstReceivedData = await callbackRecorder.waitForFirstMessage(matchingAction: Actions.startWifiScan) {
+            mockDevice.completeNextWifiScan(networks: initialNetworks)
+        }
+
+        mockDevice.networks = updatedNetworks
+        await mockDevice.waitForWifiScanStarts(atLeast: 2)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 2) {
+            mockDevice.completeNextWifiScan(networks: updatedNetworks)
+        }
+        let receivedData = receivedMessages[1]
+
+        await mockDevice.waitForWifiScanStarts(atLeast: 3)
+        mockDevice.completeNextWifiScan(networks: updatedNetworks)
+        await mockDevice.waitForWifiScanStarts(atLeast: 4)
+
+        #expect(mockDevice.scanWifiListCallCount >= 3)
 
         #expect(firstReceivedData["provider"] as? String == Providers.espprovision)
         #expect(firstReceivedData["action"] as? String == Actions.startWifiScan)
@@ -608,47 +772,42 @@ struct ESPProvisionProviderTest {
         let network2 = networks2.first!
         #expect(network2["ssid"] as? String == "SSID-1")
         #expect(network2["signalStrength"] as? Int32 == -60)
+        #expect(callbackRecorder.messageCount() == 2)
     }
 
     @Test func wifiScanTimesout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.05
+        mockDevice.manualWifiScans = true
         mockDevice.networks = []
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 0.2)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 0.2, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startWifiScan()
-            #expect(provider.wifiScanning)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+        provider.startWifiScan()
+        #expect(provider.wifiScanning)
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+        timeSource.advance(by: 0.3)
+        mockDevice.completeNextWifiScan(networks: [])
 
-        // Ideally should be == 4 but too brittle based on timing during test run
-        #expect(mockDevice.scanWifiListCallCount >= 2 && mockDevice.scanWifiListCallCount <= 4)
-        #expect(receivedCallbackCount == 1)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.stopWifiScan, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(mockDevice.scanWifiListCallCount == 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.wifiScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -657,43 +816,39 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func wifiScanMaximumIterations() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.05
+        mockDevice.manualWifiScans = true
         mockDevice.networks = []
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 120, searchWifiMaxIterations: 5)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 120, searchWifiMaxIterations: 5, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startWifiScan()
-            #expect(provider.wifiScanning)
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        // Wait long enough so scan can stop
-        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+        provider.startWifiScan()
+        #expect(provider.wifiScanning)
+        for i in 1...5 {
+            await mockDevice.waitForWifiScanStarts(atLeast: i)
+            mockDevice.completeNextWifiScan(networks: [])
+        }
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.stopWifiScan, count: 1)
+        let receivedData = receivedMessages[0]
 
         #expect(mockDevice.scanWifiListCallCount == 5)
-        #expect(receivedCallbackCount == 1)
+        #expect(callbackRecorder.messageCount() == 1)
         #expect(provider.wifiScanning == false)
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
@@ -701,18 +856,71 @@ struct ESPProvisionProviderTest {
         #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
     }
 
-    @Test func testStopWifiScan() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+    @Test func wifiScanSettingsChangeDuringScanDoesNotTimeout() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        espProvisionMock.manualDeviceScans = true
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.5
+        mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let callbackRecorder = CallbackRecorder()
+        let callbackChannel = CallbackChannel(sendDataCallback: { data in
+            callbackRecorder.record(data)
+        }, provider: Providers.espprovision)
+
+        let deviceRegistry = DeviceRegistry(searchDeviceTimeout: 1,
+                                            searchDeviceMaxIterations: Int.max,
+                                            timeSource: timeSource)
+        deviceRegistry.callbackChannel = callbackChannel
+        deviceRegistry.provisionManager = espProvisionMock
+        defer { deviceRegistry.stopDevicesScan(sendMessage: false) }
+
+        deviceRegistry.startDevicesScan()
+        await espProvisionMock.waitForDeviceSearchRequests(atLeast: 1)
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startBleScan, count: 1) {
+            espProvisionMock.completeNextDeviceScan()
+        }
+        deviceRegistry.stopDevicesScan(sendMessage: false)
+
+        let devices = receivedMessages[0]["devices"] as! [[String:Any]]
+        let deviceId = devices[0]["id"] as! String
+        let deviceConnection = DeviceConnection(deviceRegistry: deviceRegistry, callbackChannel: callbackChannel)
+        deviceConnection.connectTo(deviceId: deviceId)
+
+        let wifiProvisioner = WifiProvisioner(deviceConnection: deviceConnection,
+                                              callbackChannel: callbackChannel,
+                                              searchWifiTimeout: 120,
+                                              searchWifiMaxIterations: Int.max,
+                                              timeSource: timeSource)
+        defer { wifiProvisioner.stopWifiScan(sendMessage: false) }
+
+        wifiProvisioner.startWifiScan()
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+
+        wifiProvisioner.searchWifiTimeout = 60
+        wifiProvisioner.searchWifiMaxIterations = Int.max
+        mockDevice.completeNextWifiScan(networks: [])
+
+        await mockDevice.waitForWifiScanStarts(atLeast: 2)
+
+        #expect(wifiProvisioner.wifiScanning)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.stopWifiScan) == 0)
+    }
+
+    @Test func testStopWifiScan() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let mockDevice = ORESPDeviceMock()
+        mockDevice.manualWifiScans = true
+        espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
+
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -722,18 +930,9 @@ struct ESPProvisionProviderTest {
         provider.sendDataCallback = { _ in
             receivedDeviceInformation = true
         }
-        try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
 
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.stopWifiScan) {
             provider.stopWifiScan()
         }
         #expect(mockDevice.scanWifiListCallCount == 1)
@@ -748,17 +947,17 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func testStopWifiScanNotStarted() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
-        mockDevice.scanWifiDuration = 0.5
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
@@ -780,34 +979,32 @@ struct ESPProvisionProviderTest {
     // TODO: start device scan during wifi search
 
     @Test func sendWifiConfigurationSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualWifiScans = true
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-        var receivedData: [String:Any] = [:]
-
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startWifiScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
+
+        provider.startWifiScan()
         #expect(provider.wifiScanning)
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+        mockDevice.completeNextWifiScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
+        var receivedData = firstReceivedMessages[0]
 
         let network = (receivedData["networks"] as! [[String:Any]]).first!
 
@@ -851,34 +1048,33 @@ struct ESPProvisionProviderTest {
     ])
     func sendWifiConfigurationProvisionErrors(errorTupple: (ESPProvisionError, ESPProviderErrorCode)) async throws {
         let (provisionError, providerErrorCode) = errorTupple
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualWifiScans = true
         mockDevice.provisionError = provisionError
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
-
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
-            provider.startWifiScan()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
+
+        provider.startWifiScan()
         #expect(provider.wifiScanning)
+        await mockDevice.waitForWifiScanStarts(atLeast: 1)
+        mockDevice.completeNextWifiScan()
+
+        let firstReceivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.startWifiScan, count: 1)
+        var receivedData = firstReceivedMessages[0]
 
         let network = (receivedData["networks"] as! [[String:Any]]).first!
 
@@ -908,16 +1104,17 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func sendWifiConfigurationNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -934,8 +1131,10 @@ struct ESPProvisionProviderTest {
 
 
     @Test func provisionDeviceSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         var expectedDeviceInfo = Response.DeviceInfo()
         expectedDeviceInfo.deviceID = "123456789ABC"
@@ -947,50 +1146,34 @@ struct ESPProvisionProviderTest {
         var expectedBackendConnectionStatus = Response.BackendConnectionStatus()
         expectedBackendConnectionStatus.status = .connected
 
-        mockDevice.addMockData(ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatus)))
         espProvisionMock.mockDevices = [mockDevice]
 
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-            provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.provisionDevice)
-        #expect(receivedData["connected"] as? Bool == true)
+        provider.provisionDevice(userToken: "OAUTH_TOKEN")
 
-        #expect(mockDevice.receivedData.count == 3)
-
-        var request = try Request(serializedBytes: mockDevice.receivedData[0])
+        var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
         #expect(request.body == .deviceInfo(Request.DeviceInfo()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
 
-        request = try Request(serializedBytes: mockDevice.receivedData[1])
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 1)
         #expect(request.id == "1")
         if case let .openRemoteConfig(openRemoteConfig) = request.body {
             #expect(openRemoteConfig.realm == "master")
@@ -998,14 +1181,25 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
             #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
-
         } else {
             Issue.record("Received an unexpected response: \(request)")
         }
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
 
-        request = try Request(serializedBytes: mockDevice.receivedData[2])
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 2)
         #expect(request.id == "2")
         #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatus)))
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.provisionDevice, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.provisionDevice)
+        #expect(receivedData["connected"] as? Bool == true)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
+
+        #expect(mockDevice.receivedData.count == 3)
 
         #expect(deviceProvisionAPIMock.provisionCallCount == 1)
         #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
@@ -1015,8 +1209,10 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceSuccessAfterMultipleStatusRequest() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         var expectedDeviceInfo = Response.DeviceInfo()
         expectedDeviceInfo.deviceID = "123456789ABC"
@@ -1031,52 +1227,34 @@ struct ESPProvisionProviderTest {
         var expectedBackendConnectionStatusFailure = Response.BackendConnectionStatus()
         expectedBackendConnectionStatusFailure.status = .disconnected
 
-        mockDevice.addMockData(ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "3", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "4", body: .backendConnectionStatus(expectedBackendConnectionStatusSuccess)))
         espProvisionMock.mockDevices = [mockDevice]
 
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-            provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.provisionDevice)
-        #expect(receivedData["connected"] as? Bool == true)
+        provider.provisionDevice(userToken: "OAUTH_TOKEN")
 
-        try #require(mockDevice.receivedData.count == 5)
-
-        var request = try Request(serializedBytes: mockDevice.receivedData[0])
+        var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
         #expect(request.body == .deviceInfo(Request.DeviceInfo()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
 
-        request = try Request(serializedBytes: mockDevice.receivedData[1])
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 1)
         #expect(request.id == "1")
         if case let .openRemoteConfig(openRemoteConfig) = request.body {
             #expect(openRemoteConfig.realm == "master")
@@ -1084,16 +1262,31 @@ struct ESPProvisionProviderTest {
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
             #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
-
         } else {
             Issue.record("Received an unexpected response: \(request)")
         }
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
 
         for i in 2...4 {
-            request = try Request(serializedBytes: mockDevice.receivedData[i])
+            request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: i)
             #expect(request.id == String(i))
             #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+
+            let response = i == 4
+                ? ORConfigChannelTest.responseData(id: "4", body: .backendConnectionStatus(expectedBackendConnectionStatusSuccess))
+                : ORConfigChannelTest.responseData(id: String(i), body: .backendConnectionStatus(expectedBackendConnectionStatusFailure))
+            mockDevice.completeNextSendDataRequest(data: response)
         }
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.provisionDevice, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.provisionDevice)
+        #expect(receivedData["connected"] as? Bool == true)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
+
+        try #require(mockDevice.receivedData.count == 5)
 
         #expect(deviceProvisionAPIMock.provisionCallCount == 1)
         #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
@@ -1103,8 +1296,9 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceFailureTimeout() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
 
         var expectedDeviceInfo = Response.DeviceInfo()
         expectedDeviceInfo.deviceID = "123456789ABC"
@@ -1116,54 +1310,35 @@ struct ESPProvisionProviderTest {
         var expectedBackendConnectionStatusFailure = Response.BackendConnectionStatus()
         expectedBackendConnectionStatusFailure.status = .disconnected
 
-        mockDevice.addMockData(ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)), delay: 0.2)
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "3", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)), delay: 0.2)
-        mockDevice.addMockData(ORConfigChannelTest.responseData(id: "4", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)), delay: 0.2)
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock, backendConnectionTimeout: 0.5)
+                                            deviceProvisionAPI: deviceProvisionAPIMock, backendConnectionTimeout: 0.5,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-            provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
 
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.provisionDevice)
-        #expect(receivedData["connected"] as? Bool != nil)
-        #expect(receivedData["connected"] as? Bool == false)
-        #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
+        provider.provisionDevice(userToken: "OAUTH_TOKEN")
 
-        try #require(mockDevice.receivedData.count == 5)
-
-        var request = try Request(serializedBytes: mockDevice.receivedData[0])
+        var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
         #expect(request.body == .deviceInfo(Request.DeviceInfo()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
 
-        request = try Request(serializedBytes: mockDevice.receivedData[1])
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 1)
         #expect(request.id == "1")
         if case let .openRemoteConfig(openRemoteConfig) = request.body {
             #expect(openRemoteConfig.realm == "master")
@@ -1175,12 +1350,106 @@ struct ESPProvisionProviderTest {
         } else {
             Issue.record("Received an unexpected response: \(request)")
         }
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
 
-        for i in 2...4 {
-            request = try Request(serializedBytes: mockDevice.receivedData[i])
-            #expect(request.id == String(i))
-            #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 2)
+        #expect(request.id == "2")
+        #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+        timeSource.advance(by: 0.6)
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)))
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.provisionDevice, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.provisionDevice)
+        #expect(receivedData["connected"] as? Bool != nil)
+        #expect(receivedData["connected"] as? Bool == false)
+        #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.timeoutError.rawValue)
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
+
+        #expect(mockDevice.receivedData.count == 3)
+
+        #expect(deviceProvisionAPIMock.provisionCallCount == 1)
+        #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
+        #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
+        #expect(deviceProvisionAPIMock.receivedPassword != nil)
+        #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+    }
+
+    @Test func provisionDeviceFailureBackendConnectionFailed() async throws {
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
+
+        var expectedDeviceInfo = Response.DeviceInfo()
+        expectedDeviceInfo.deviceID = "123456789ABC"
+        expectedDeviceInfo.modelName = "My Battery"
+
+        var expectedOpenRemoteConfig = Response.OpenRemoteConfig()
+        expectedOpenRemoteConfig.status = .success
+
+        var expectedBackendConnectionStatusFailure = Response.BackendConnectionStatus()
+        expectedBackendConnectionStatusFailure.status = .failed
+
+        espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
+
+        let deviceProvisionAPIMock = DeviceProvisionAPIMock()
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
+                                            searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
+        _ = provider.initialize()
+        _ = await enable(provider: provider)
+        provider.setProvisionManager(espProvisionMock)
+
+        let device = await discoverDeviceAndStopScan(provider: provider)
+
+        try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
+
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
+
+        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+
+        var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
+        #expect(request.id == "0")
+        #expect(request.body == .deviceInfo(Request.DeviceInfo()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .deviceInfo(expectedDeviceInfo)))
+
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 1)
+        #expect(request.id == "1")
+        if case let .openRemoteConfig(openRemoteConfig) = request.body {
+            #expect(openRemoteConfig.realm == "master")
+            #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
+            #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
+            #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
+            #expect(openRemoteConfig.assetID == "AssetID")
+
+        } else {
+            Issue.record("Received an unexpected response: \(request)")
+        }
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "1", body: .openRemoteConfig(expectedOpenRemoteConfig)))
+
+        request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 2)
+        #expect(request.id == "2")
+        #expect(request.body == .backendConnectionStatus(Request.BackendConnectionStatus()))
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(id: "2", body: .backendConnectionStatus(expectedBackendConnectionStatusFailure)))
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.provisionDevice, count: 1)
+        let receivedData = receivedMessages[0]
+
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.provisionDevice)
+        #expect(receivedData["connected"] as? Bool == false)
+        #expect(receivedData["errorCode"] as? Int == ESPProviderErrorCode.communicationError.rawValue)
+        #expect(receivedData["errorMessage"] as? String == "Backend connection failed")
+        #expect(callbackRecorder.messageCount(matchingAction: Actions.provisionDevice) == 1)
+
+        #expect(mockDevice.receivedData.count == 3)
 
         #expect(deviceProvisionAPIMock.provisionCallCount == 1)
         #expect(deviceProvisionAPIMock.receivedModelName == expectedDeviceInfo.modelName)
@@ -1190,30 +1459,19 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func provisionDeviceNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
         espProvisionMock.mockDevices = [mockDevice]
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.provisionDevice) {
             provider.provisionDevice(userToken: "OAUTH_TOKEN")
         }
 
@@ -1225,39 +1483,37 @@ struct ESPProvisionProviderTest {
     // MARK: Exit provisioning
 
     @Test func exitProvisioningSuccess() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
         let mockDevice = ORESPDeviceMock()
+        mockDevice.manualSendDataResponses = true
+        let timeSource = TestTimeSource()
 
         espProvisionMock.mockDevices = [mockDevice]
 
         let deviceProvisionAPIMock = DeviceProvisionAPIMock()
         let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max,
                                             searchWifiTimeout: 1, searchWifiMaxIterations: Int.max,
-                                            deviceProvisionAPI: deviceProvisionAPIMock)
-        mockDevice.addMockData(ORConfigChannelTest.responseData(body: .exitProvisioning(Response.ExitProvisioning())))
+                                            deviceProvisionAPI: deviceProvisionAPIMock,
+                                            timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        let device = await getDevice(provider: provider)
+        let device = await discoverDeviceAndStopScan(provider: provider)
 
         try await connectToDevice(provider: provider, deviceId: device["id"] as! String)
 
-        var receivedData: [String:Any] = [:]
-        var receivedCallbackCount = 0
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                receivedCallbackCount += 1
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-            provider.exitProvisioning()
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
+
+        provider.exitProvisioning()
+        _ = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
+        mockDevice.completeNextSendDataRequest(data: ORConfigChannelTest.responseData(body: .exitProvisioning(Response.ExitProvisioning())))
+
+        let receivedMessages = await callbackRecorder.waitForMessages(matchingAction: Actions.exitProvisioning, count: 1)
+        let receivedData = receivedMessages[0]
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)
         #expect(receivedData["action"] as? String == Actions.exitProvisioning)
@@ -1265,14 +1521,15 @@ struct ESPProvisionProviderTest {
     }
 
     @Test func exitProvisioningNotConnected() async throws {
-        let espProvisionMock = ESPORProvisionManagerMock()
+        let espProvisionMock = ORESPProvisionManagerMock()
+        let timeSource = TestTimeSource()
 
-        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max)
+        let provider = ESPProvisionProvider(searchDeviceTimeout: 1, searchDeviceMaxIterations: Int.max, searchWifiTimeout: 1, searchWifiMaxIterations: Int.max, timeSource: timeSource)
         _ = provider.initialize()
         _ = await enable(provider: provider)
         provider.setProvisionManager(espProvisionMock)
 
-        _ = await getDevice(provider: provider)
+        _ = await discoverDeviceAndStopScan(provider: provider)
 
         provider.stopDevicesScan()
 
@@ -1288,91 +1545,67 @@ struct ESPProvisionProviderTest {
 
     // MARK: helpers
 
+    private func waitForNextPendingRequest(on mockDevice: ORESPDeviceMock, requestIndex: Int) async throws -> Request {
+        await mockDevice.waitForPendingSendDataRequests(atLeast: 1)
+        return try Request(serializedBytes: mockDevice.receivedData[requestIndex])
+    }
+
     private func enable(provider: ESPProvisionProvider) async -> Bool {
-        var receivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.providerEnable) {
             provider.enable()
         }
 
+        #expect(receivedData["provider"] as? String == Providers.espprovision)
+        #expect(receivedData["action"] as? String == Actions.providerEnable)
         return (receivedData["success"] as! Bool)
     }
 
-    private func getDevice(provider: ESPProvisionProvider) async -> [String: Any] {
-        var receivedData: [String:Any] = [:]
-
-        await withCheckedContinuation { continuation in
-            var continuationCalled = false
-            provider.sendDataCallback = { data in
-                receivedData = data
-                if !continuationCalled {
-                    continuationCalled = true
-                    continuation.resume()
-                }
-            }
-
+    private func discoverDeviceAndStopScan(provider: ESPProvisionProvider) async -> [String: Any] {
+        let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.startBleScan) {
             provider.startDevicesScan()
         }
+        provider.stopDevicesScan()
 
         return (receivedData["devices"] as! [[String:Any]]).first!
     }
 
     private func connectToDevice(provider: ESPProvisionProvider, deviceId: String) async throws {
-        let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
-            provider.connectTo(deviceId: deviceId)
+        if provider.bleScanning {
+            let receivedMessages = await waitForMessages(provider: provider, expectingActions: [Actions.stopBleScan, Actions.connectToDevice]) {
+                provider.connectTo(deviceId: deviceId)
+            }
+
+            #expect(receivedMessages.count == 2)
+
+            let receivedData = receivedMessages[0]
+            #expect(receivedData["provider"] as? String == Providers.espprovision)
+            #expect(receivedData["action"] as? String == Actions.stopBleScan)
+            #expect(receivedData.count == 2)
+        } else {
+            let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.connectToDevice) {
+                provider.connectTo(deviceId: deviceId)
+            }
+
+            #expect(receivedData["provider"] as? String == Providers.espprovision)
+            #expect(receivedData["action"] as? String == Actions.connectToDevice)
         }
-
-        #expect(receivedMessages.count == 2)
-
-        let receivedData = receivedMessages[0]
-        #expect(receivedData["provider"] as? String == Providers.espprovision)
-        #expect(receivedData["action"] as? String == Actions.stopBleScan)
-        #expect(receivedData.count == 2)
     }
 
-    private func waitForMessage(provider: ESPProvisionProvider, expectingAction action: String, afterCalling trigger: (() -> (Void))) async -> [String:Any] {
-        var receivedData: [String:Any] = [:]
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                if (data["action"] as? String) == action {
-                    receivedData = data
-                    continuation.resume()
-                } else {
-                    Issue.record("Received an unexpected action: \(data)")
-                }
-            }
-            trigger()
+    private func waitForMessage(provider: ESPProvisionProvider, expectingAction action: String, afterCalling trigger: @escaping () -> Void) async -> [String:Any] {
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
-        return receivedData
+
+        return await callbackRecorder.waitForFirstMessage(matchingAction: action, after: trigger)
     }
 
-    private func waitForMessages(provider: ESPProvisionProvider, expectingActions actions: [String], afterCalling trigger: (() -> (Void))) async -> [[String:Any]] {
-        var receivedData: [[String:Any]] = []
-        var actionsIterator = actions.makeIterator()
-        var expectedAction = actionsIterator.next()
-        await withCheckedContinuation { continuation in
-            provider.sendDataCallback = { data in
-                if (data["action"] as? String) == expectedAction {
-                    receivedData.append(data)
-                    expectedAction = actionsIterator.next()
-                    if expectedAction == nil {
-                        continuation.resume()
-                    }
-                } else {
-                    Issue.record("Received an unexpected action: \(data)")
-                }
-            }
-            trigger()
+    private func waitForMessages(provider: ESPProvisionProvider, expectingActions actions: [String], afterCalling trigger: @escaping () -> Void) async -> [[String:Any]] {
+        let callbackRecorder = CallbackRecorder()
+        provider.sendDataCallback = { data in
+            callbackRecorder.record(data)
         }
-        return receivedData
+
+        return await callbackRecorder.waitForMessages(matchingActions: actions, after: trigger)
     }
 }

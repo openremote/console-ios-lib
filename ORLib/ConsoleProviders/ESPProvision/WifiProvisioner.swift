@@ -30,13 +30,14 @@ class WifiProvisioner {
     private var deviceConnection: DeviceConnection?
     var callbackChannel: CallbackChannel?
 
+    private let timeSource: any TimeSource
     private var loopDetector: LoopDetector
     var searchWifiTimeout: TimeInterval {
         get {
             loopDetector.timeout
         }
         set {
-            self.loopDetector = LoopDetector(timeout: newValue, maxIterations: searchWifiMaxIterations)
+            self.loopDetector.timeout = newValue
         }
 
     }
@@ -45,7 +46,7 @@ class WifiProvisioner {
             loopDetector.maxIterations
         }
         set {
-            self.loopDetector = LoopDetector(timeout: searchWifiTimeout, maxIterations: newValue)
+            self.loopDetector.maxIterations = newValue
         }
 
     }
@@ -59,10 +60,15 @@ class WifiProvisioner {
 
     private var wifiNetworks = [ESPWifiNetwork]()
 
-    init(deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, searchWifiTimeout: TimeInterval = 120, searchWifiMaxIterations: Int = 25) {
+    init(deviceConnection: DeviceConnection?,
+         callbackChannel: CallbackChannel?,
+         searchWifiTimeout: TimeInterval = 120,
+         searchWifiMaxIterations: Int = 25,
+         timeSource: any TimeSource = SystemTimeSource()) {
         self.deviceConnection = deviceConnection
         self.callbackChannel = callbackChannel
-        self.loopDetector = LoopDetector(timeout: searchWifiTimeout, maxIterations: searchWifiMaxIterations)
+        self.timeSource = timeSource
+        self.loopDetector = LoopDetector(timeout: searchWifiTimeout, maxIterations: searchWifiMaxIterations, timeSource: timeSource)
     }
 
     public func startWifiScan() {

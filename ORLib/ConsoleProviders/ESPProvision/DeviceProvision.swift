@@ -34,14 +34,16 @@ class DeviceProvision {
     private var deviceConnection: DeviceConnection?
     var callbackChannel: CallbackChannel?
 
+    private let timeSource: any TimeSource
     var apiURL: URL
     var deviceProvisionAPI: DeviceProvisionAPI
 
     var backendConnectionTimeout: TimeInterval = 60
 
-    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, apiURL: URL) {
+    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, apiURL: URL, timeSource: any TimeSource = SystemTimeSource()) {
         self.deviceConnection = deviceConnection
         self.callbackChannel = callbackChannel
+        self.timeSource = timeSource
         self.apiURL = apiURL
         self.deviceProvisionAPI = DeviceProvisionAPIREST(apiURL: apiURL)
     }
@@ -64,22 +66,21 @@ class DeviceProvision {
             try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL, mqttUser: userName, mqttPassword: password, assetId: assetId)
 
             var status = BackendConnectionStatus.connecting
-            // TODO: what about other status values ? Is status connecting while it connects ? or disconnected ? -> test with real device
-            let startTime = Date.now
+            let startTime = timeSource.now
             while status != .connected {
-                if Date.now.timeIntervalSince(startTime) > backendConnectionTimeout {
+                if timeSource.now - startTime > backendConnectionTimeout {
                     sendProvisionDeviceStatus(connected: false, error: .timeoutError, errorMessage: "Timeout waiting for backend to get connected")
                     return
                 }
                 status = try await deviceConnection!.getBackendConnectionStatus()
                 Self.logger.info("ModuleOne reported connection status \(String(describing: status))")
+                if status == .failed {
+                    sendProvisionDeviceStatus(connected: false, error: .communicationError, errorMessage: "Backend connection failed")
+                    return
+                }
             }
 
-            // TODO: review, if we're out of the loop, this is always true
-
-            if status == .connected {
-                sendProvisionDeviceStatus(connected: true)
-            }
+            sendProvisionDeviceStatus(connected: true)
         } catch let error as ESPProviderError {
             sendProvisionDeviceStatus(connected: false, error: error.errorCode, errorMessage: error.errorMessage)
         } catch let error as RandomPasswordGeneratorError {
