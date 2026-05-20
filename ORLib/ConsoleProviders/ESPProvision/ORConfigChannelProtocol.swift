@@ -367,6 +367,8 @@ struct Request: Sendable {
 
     var assetID: String = String()
 
+    var properties: Dictionary<String,String> = [:]
+
     var unknownFields = SwiftProtobuf.UnknownStorage()
 
     init() {}
@@ -800,7 +802,7 @@ extension Request.BackendConnectionStatus: SwiftProtobuf.Message, SwiftProtobuf.
 
 extension Request.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = Request.protoMessageName + ".OpenRemoteConfig"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}mqtt_broker_url\0\u{1}user\0\u{3}mqtt_password\0\u{1}realm\0\u{3}asset_id\0")
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}mqtt_broker_url\0\u{1}user\0\u{3}mqtt_password\0\u{1}realm\0\u{3}asset_id\0\u{1}properties\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -813,6 +815,7 @@ extension Request.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._Messag
       case 3: try { try decoder.decodeSingularStringField(value: &self.mqttPassword) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.realm) }()
       case 5: try { try decoder.decodeSingularStringField(value: &self.assetID) }()
+      case 6: try { try decoder.decodeMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: &self.properties) }()
       default: break
       }
     }
@@ -834,6 +837,9 @@ extension Request.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._Messag
     if !self.assetID.isEmpty {
       try visitor.visitSingularStringField(value: self.assetID, fieldNumber: 5)
     }
+    if !self.properties.isEmpty {
+      try visitor.visitMapField(fieldType: SwiftProtobuf._ProtobufMap<SwiftProtobuf.ProtobufString,SwiftProtobuf.ProtobufString>.self, value: self.properties, fieldNumber: 6)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -843,6 +849,7 @@ extension Request.OpenRemoteConfig: SwiftProtobuf.Message, SwiftProtobuf._Messag
     if lhs.mqttPassword != rhs.mqttPassword {return false}
     if lhs.realm != rhs.realm {return false}
     if lhs.assetID != rhs.assetID {return false}
+    if lhs.properties != rhs.properties {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

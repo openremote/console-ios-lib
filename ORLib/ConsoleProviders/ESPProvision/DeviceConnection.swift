@@ -144,12 +144,12 @@ class DeviceConnection {
         }
     }
 
-    func sendOpenRemoteConfig(mqttBrokerUrl: String, mqttUser: String, mqttPassword: String, assetId: String) async throws {
+    func sendOpenRemoteConfig(mqttBrokerUrl: String, mqttUser: String, mqttPassword: String, assetId: String, properties: [String: String] = [:]) async throws {
         if !isConnected {
             throw ESPProviderError(errorCode: .notConnected, errorMessage: "No connection established to device")
         }
         do {
-            try await configChannel!.sendOpenRemoteConfig(mqttBrokerUrl: mqttBrokerUrl, mqttUser: mqttUser, mqttPassword: mqttPassword, assetId: assetId)
+            try await configChannel!.sendOpenRemoteConfig(mqttBrokerUrl: mqttBrokerUrl, mqttUser: mqttUser, mqttPassword: mqttPassword, assetId: assetId, properties: properties)
         } catch {
             throw ESPProviderError(errorCode: .communicationError, errorMessage: error.localizedDescription)
         }
