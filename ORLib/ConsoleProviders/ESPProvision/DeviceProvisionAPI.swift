@@ -28,7 +28,7 @@ struct DeviceProvisionAPIREST: DeviceProvisionAPI {
 
     private var apiURL: URL
 
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String {
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
         /*
          curl -v http://localhost:8080/api/master/rest/battery -d'{
          "model": 0,
@@ -69,8 +69,8 @@ struct DeviceProvisionAPIREST: DeviceProvisionAPI {
                 mimeType == "application/json",
                 let dataString = String(data: data, encoding: .utf8) {
                 ORLogger.espprovisioning.info("Received JSON response from server \(dataString)")
-                    let assetId = try JSONDecoder().decode(ProvisionResponseBody.self, from: data).assetId
-                    return assetId
+                    let body = try JSONDecoder().decode(ProvisionResponseBody.self, from: data)
+                    return ProvisionResult(assetId: body.assetId, properties: body.properties ?? [:])
             }
         } catch {
             ORLogger.espprovisioning.error("\(error.localizedDescription)")
@@ -87,6 +87,7 @@ struct DeviceProvisionAPIREST: DeviceProvisionAPI {
 
     struct ProvisionResponseBody: Decodable {
         var assetId: String
+        var properties: [String: String]?
     }
 }
 

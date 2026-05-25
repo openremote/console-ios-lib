@@ -22,7 +22,12 @@ import os
 import RandomPasswordGenerator
 
 protocol DeviceProvisionAPI {
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult
+}
+
+struct ProvisionResult {
+    let assetId: String
+    let properties: [String: String]
 }
 
 class DeviceProvision {
@@ -60,10 +65,10 @@ class DeviceProvision {
 
             let password = try generatePassword()
 
-            let assetId = try await deviceProvisionAPI.provision(modelName: deviceInfo.modelName, deviceId: deviceInfo.deviceId, password: password, token: userToken)
+            let result = try await deviceProvisionAPI.provision(modelName: deviceInfo.modelName, deviceId: deviceInfo.deviceId, password: password, token: userToken)
             let userName = deviceInfo.deviceId.lowercased(with: Locale(identifier: "en"))
 
-            try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL, mqttUser: userName, mqttPassword: password, assetId: assetId)
+            try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL, mqttUser: userName, mqttPassword: password, assetId: result.assetId, properties: result.properties)
 
             var status = BackendConnectionStatus.connecting
             let startTime = timeSource.now

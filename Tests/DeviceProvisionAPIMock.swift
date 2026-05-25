@@ -31,12 +31,15 @@ class DeviceProvisionAPIMock: DeviceProvisionAPI {
     var receivedToken: String?
     var provisionCallCount = 0
 
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> String {
+    var stubbedAssetId = "AssetID"
+    var stubbedProperties: [String: String] = [:]
+
+    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
         provisionCallCount += 1
         receivedModelName = modelName
         receivedDeviceId = deviceId
         receivedPassword = password
         receivedToken = token
-        return "AssetID"
+        return ProvisionResult(assetId: stubbedAssetId, properties: stubbedProperties)
     }
 }
