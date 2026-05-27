@@ -396,10 +396,10 @@ extension ORViewcontroller: WKScriptMessageHandler {
                             case Providers.espprovision:
                                 switch action {
                                 case Actions.providerInit:
-                                    if let baseUrl, let appUrl = URL(string: baseUrl),
-
-                                        // TODO: should use realm, not always master
-                                       let apiUrl = URL(string: "\(appUrl.scheme ?? "https")://\(appUrl.host ?? "localhost")\(appUrl.port != nil ? ":\(appUrl.port!)" : "")/api/master") {
+                                    let urlResolver = ESPProvisionURLResolver()
+                                    let realm = urlResolver.realm(currentURL: myWebView?.url, targetUrl: targetUrl, baseUrl: baseUrl)
+                                    if let baseUrl,
+                                       let apiUrl = urlResolver.apiURL(baseUrl: baseUrl, realm: realm) {
                                         espProvisionProvider = ESPProvisionProvider(apiURL: apiUrl)
                                     } else {
                                         espProvisionProvider = ESPProvisionProvider()

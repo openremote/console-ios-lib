@@ -46,6 +46,7 @@
 		914F7D4429215D3500655A22 /* test12.json in Resources */ = {isa = PBXBuildFile; fileRef = 914F7D4329215D3500655A22 /* test12.json */; };
 		9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */; };
 		9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9154E2A12D9EB3220055E565 /* URLTest.swift */; };
+		91E8A0032F07700000E5BF01 /* ESPProvisionURLResolverTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E8A0022F07700000E5BF01 /* ESPProvisionURLResolverTest.swift */; };
 		9156512A28FC6D6700062E16 /* test9.json in Resources */ = {isa = PBXBuildFile; fileRef = 9156512928FC6D6700062E16 /* test9.json */; };
 		915CCC952EF163E8006B65AA /* DeviceProvisionAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915CCC942EF163E8006B65AA /* DeviceProvisionAPI.swift */; };
 		915CCC972EF16456006B65AA /* DeviceProvision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915CCC962EF16456006B65AA /* DeviceProvision.swift */; };
@@ -71,6 +72,7 @@
 		91F2165C2D887BCF008F9CA7 /* ORConfigChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216552D887BCF008F9CA7 /* ORConfigChannel.swift */; };
 		91F2165E2D887BCF008F9CA7 /* DeviceRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216522D887BCF008F9CA7 /* DeviceRegistry.swift */; };
 		91F2165F2D887BCF008F9CA7 /* ORESPDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216572D887BCF008F9CA7 /* ORESPDevice.swift */; };
+		91E8A0012F07700000E5BF01 /* ESPProvisionURLResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E8A0002F07700000E5BF01 /* ESPProvisionURLResolver.swift */; };
 			91F216602D887BCF008F9CA7 /* WifiProvisioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */; };
 			91F216612D887BCF008F9CA7 /* ESPProvisionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216532D887BCF008F9CA7 /* ESPProvisionProvider.swift */; };
 			91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */; };
@@ -145,6 +147,7 @@
 		914F7D4329215D3500655A22 /* test12.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test12.json; sourceTree = "<group>"; };
 		9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringUtilsTest.swift; sourceTree = "<group>"; };
 		9154E2A12D9EB3220055E565 /* URLTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLTest.swift; sourceTree = "<group>"; };
+		91E8A0022F07700000E5BF01 /* ESPProvisionURLResolverTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionURLResolverTest.swift; sourceTree = "<group>"; };
 		9156512928FC6D6700062E16 /* test9.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = test9.json; sourceTree = "<group>"; };
 		915CCC942EF163E8006B65AA /* DeviceProvisionAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvisionAPI.swift; sourceTree = "<group>"; };
 		915CCC962EF16456006B65AA /* DeviceProvision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvision.swift; sourceTree = "<group>"; };
@@ -181,6 +184,7 @@
 			91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORConfigChannelProtocol.swift; sourceTree = "<group>"; };
 			91F216572D887BCF008F9CA7 /* ORESPDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDevice.swift; sourceTree = "<group>"; };
 			91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WifiProvisioner.swift; sourceTree = "<group>"; };
+			91E8A0002F07700000E5BF01 /* ESPProvisionURLResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionURLResolver.swift; sourceTree = "<group>"; };
 			91F216712D887BCF008F9CA7 /* TimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeSource.swift; sourceTree = "<group>"; };
 				91F216652D887C53008F9CA7 /* DeviceProvisionAPIMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceProvisionAPIMock.swift; sourceTree = "<group>"; };
 				91F216662D887C53008F9CA7 /* ESPProvisionProviderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ESPProvisionProviderTest.swift; sourceTree = "<group>"; };
@@ -359,6 +363,7 @@
 						91F216732D887C53008F9CA7 /* TestTimeSource.swift */,
 						9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
 						9154E2A12D9EB3220055E565 /* URLTest.swift */,
+						91E8A0022F07700000E5BF01 /* ESPProvisionURLResolverTest.swift */,
 				);
 			path = Tests;
 			sourceTree = "<group>";
@@ -375,6 +380,7 @@
 					91F216562D887BCF008F9CA7 /* ORConfigChannelProtocol.swift */,
 					91F216572D887BCF008F9CA7 /* ORESPDevice.swift */,
 					91F216582D887BCF008F9CA7 /* WifiProvisioner.swift */,
+					91E8A0002F07700000E5BF01 /* ESPProvisionURLResolver.swift */,
 					91F216712D887BCF008F9CA7 /* TimeSource.swift */,
 					91DD55A02DE7306100957233 /* BLEPermissionsChecker.swift */,
 					915CCC942EF163E8006B65AA /* DeviceProvisionAPI.swift */,
@@ -562,6 +568,7 @@
 					91F216622D887BCF008F9CA7 /* ORConfigChannelProtocol.swift in Sources */,
 					91F216632D887BCF008F9CA7 /* DeviceConnection.swift in Sources */,
 					91F216702D887BCF008F9CA7 /* TimeSource.swift in Sources */,
+					91E8A0012F07700000E5BF01 /* ESPProvisionURLResolver.swift in Sources */,
 					915CCC952EF163E8006B65AA /* DeviceProvisionAPI.swift in Sources */,
 					91F216642D887BCF008F9CA7 /* CallbackChannel.swift in Sources */,
 				4CBDF2CA2AE2869D00C7D94C /* ApiManager.swift in Sources */,
@@ -594,6 +601,7 @@
 						91F216722D887C53008F9CA7 /* TestTimeSource.swift in Sources */,
 						91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */,
 				9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */,
+				91E8A0032F07700000E5BF01 /* ESPProvisionURLResolverTest.swift in Sources */,
 				9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */,
 				91A9A8FB28BF6A4900DF8928 /* ConfigManagerTest.swift in Sources */,
 				91AA79F328D628E9005B9913 /* Fixture.swift in Sources */,
