@@ -51,7 +51,7 @@ class DeviceProvision {
         self.deviceProvisionAPI = DeviceProvisionAPIREST()
     }
 
-    public func provision(apiURL: URL, userToken: String) async {
+    public func provision(apiURL: URL, realm: String, userToken: String) async {
         guard deviceConnection?.isConnected ?? false else {
             sendProvisionDeviceStatus(connected: false, error: .notConnected, errorMessage: "No connection established to device")
             return
@@ -69,6 +69,7 @@ class DeviceProvision {
             try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL(apiURL: apiURL),
                                                              mqttUser: userName,
                                                              mqttPassword: password,
+                                                             realm: realm,
                                                              assetId: result.assetId,
                                                              properties: result.properties)
 

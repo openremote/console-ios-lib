@@ -198,7 +198,7 @@ class ESPProvisionProvider: NSObject {
 
     // MARK: OR Configuration
 
-    public func provisionDevice(apiURL: URL, userToken: String) {
+    public func provisionDevice(apiURL: URL, realm: String, userToken: String) {
         guard deviceConnection?.isConnected ?? false else {
             sendProvisionDeviceError(.notConnected, errorMessage: "No connection established to device")
             return
@@ -207,7 +207,7 @@ class ESPProvisionProvider: NSObject {
             do {
                 let deviceProvision = deviceProvisionFactory()
 
-                try await deviceProvision.provision(apiURL: apiURL, userToken: userToken)
+                try await deviceProvision.provision(apiURL: apiURL, realm: realm, userToken: userToken)
             } catch let error as ESPProviderError {
                 sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
             } catch {

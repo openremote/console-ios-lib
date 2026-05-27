@@ -450,7 +450,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                         let realm = urlResolver.realm(currentURL: myWebView?.url, targetUrl: targetUrl, baseUrl: baseUrl)
                                         if let baseUrl,
                                            let apiUrl = urlResolver.apiURL(baseUrl: baseUrl, realm: realm) {
-                                            espProvisionProvider?.provisionDevice(apiURL: apiUrl, userToken: userToken)
+                                            espProvisionProvider?.provisionDevice(apiURL: apiUrl, realm: realm, userToken: userToken)
                                         } else {
                                             let payload: [String: Any] = [
                                                 DefaultsKey.providerKey: provider,
