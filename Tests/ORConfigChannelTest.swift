@@ -158,6 +158,13 @@ struct ORConfigChannelTest {
         deviceMock.addMockData(Self.responseData(body: .openRemoteConfig(expectedOpenRemoteConfig)))
 
         _ = try await channel.sendOpenRemoteConfig(mqttBrokerUrl: "mqtts://", mqttUser: "test", mqttPassword: "pwd", assetId: "123")
+
+        let sentConfig = try Self.openRemoteConfig(from: deviceMock.receivedData)
+        #expect(sentConfig.properties.isEmpty)
+        #expect(sentConfig.mqttBrokerURL == "mqtts://")
+        #expect(sentConfig.user == "test")
+        #expect(sentConfig.mqttPassword == "pwd")
+        #expect(sentConfig.assetID == "123")
     }
 
     @Test func validSendOpenRemoteConfigFailure() async throws {
@@ -182,6 +189,27 @@ struct ORConfigChannelTest {
         await #expect(throws: ORConfigChannelError.invalidResponse("Invalid response type")) {
             _ = try await channel.sendOpenRemoteConfig(mqttBrokerUrl: "mqtts://", mqttUser: "test", mqttPassword: "pwd", assetId: "123")
         }
+    }
+
+    @Test func sendOpenRemoteConfigForwardsProperties() async throws {
+        var channel = ORConfigChannel(device: deviceMock)
+
+        var expectedOpenRemoteConfig = Response.OpenRemoteConfig()
+        expectedOpenRemoteConfig.status = .success
+        deviceMock.addMockData(Self.responseData(body: .openRemoteConfig(expectedOpenRemoteConfig)))
+
+        let properties = [
+            "ota_url": "https://ota.example.com",
+            "ota_token": "secret-token"
+        ]
+        try await channel.sendOpenRemoteConfig(mqttBrokerUrl: "mqtts://",
+                                               mqttUser: "test",
+                                               mqttPassword: "pwd",
+                                               assetId: "123",
+                                               properties: properties)
+
+        let sentConfig = try Self.openRemoteConfig(from: deviceMock.receivedData)
+        #expect(sentConfig.properties == properties)
     }
 
     // MARK: GetBackendConnectionStatus
@@ -243,5 +271,16 @@ struct ORConfigChannelTest {
         response.result = responseResult
         response.body = body
         return try! response.serializedBytes()
+    }
+
+    static func openRemoteConfig(from receivedData: [Data]) throws -> Request.OpenRemoteConfig {
+        guard let lastData = receivedData.last else {
+            throw ORConfigChannelError.invalidRequest("No request sent")
+        }
+        let request = try Request(serializedBytes: lastData)
+        guard case let .openRemoteConfig(config) = request.body else {
+            throw ORConfigChannelError.invalidRequest("Last request was not OpenRemoteConfig")
+        }
+        return config
     }
 }

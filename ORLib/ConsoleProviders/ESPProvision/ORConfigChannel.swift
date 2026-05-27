@@ -60,7 +60,8 @@ struct ORConfigChannel {
                                        mqttUser: String,
                                        mqttPassword: String,
                                        realm: String = "master",
-                                       assetId: String) async throws {
+                                       assetId: String,
+                                       properties: [String: String] = [:]) async throws {
         var openRemoteConfigRequest = Request()
         var config = Request.OpenRemoteConfig()
         config.mqttBrokerURL = mqttBrokerUrl
@@ -68,6 +69,7 @@ struct ORConfigChannel {
         config.mqttPassword = mqttPassword
         config.assetID = assetId
         config.realm = realm
+        config.properties = properties
         openRemoteConfigRequest.body = .openRemoteConfig(config)
 
         let response = try await sendRequest(openRemoteConfigRequest)
