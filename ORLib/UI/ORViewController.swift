@@ -448,8 +448,10 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     if let userToken = postMessageDict["userToken"] as? String {
                                         let urlResolver = ESPProvisionURLResolver()
                                         let realm = urlResolver.realm(currentURL: myWebView?.url, targetUrl: targetUrl, baseUrl: baseUrl)
-                                        if let baseUrl,
-                                           let apiUrl = urlResolver.apiURL(baseUrl: baseUrl, realm: realm) {
+                                        if let apiUrl = urlResolver.apiURL(currentURL: myWebView?.url,
+                                                                           targetUrl: targetUrl,
+                                                                           baseUrl: baseUrl,
+                                                                           realm: realm) {
                                             espProvisionProvider?.provisionDevice(apiURL: apiUrl, realm: realm, userToken: userToken)
                                         } else {
                                             let payload: [String: Any] = [

@@ -82,6 +82,28 @@ struct ESPProvisionURLResolverTest {
         #expect(apiURL.absoluteString == "https://example.com/api/tenant%2Fa%20b%25")
     }
 
+    @Test func apiURLFallsBackToTargetUrlWhenBaseUrlIsMissing() throws {
+        let resolver = ESPProvisionURLResolver(userDefaults: nil)
+
+        let apiURL = try #require(resolver.apiURL(currentURL: nil,
+                                                  targetUrl: "https://example.com/manager/?realm=tenantA",
+                                                  baseUrl: nil,
+                                                  realm: "tenantA"))
+
+        #expect(apiURL.absoluteString == "https://example.com/api/tenantA")
+    }
+
+    @Test func apiURLFallsBackToCurrentURLWhenBaseUrlIsMissing() throws {
+        let resolver = ESPProvisionURLResolver(userDefaults: nil)
+
+        let apiURL = try #require(resolver.apiURL(currentURL: URL(string: "http://localhost:8080/manager/?realm=tenantA"),
+                                                  targetUrl: "https://example.com/manager/?realm=tenantA",
+                                                  baseUrl: nil,
+                                                  realm: "tenantA"))
+
+        #expect(apiURL.absoluteString == "http://localhost:8080/api/tenantA")
+    }
+
     private func makeUserDefaults() throws -> (suiteName: String, userDefaults: UserDefaults) {
         let suiteName = "ESPProvisionURLResolverTest.\(UUID().uuidString)"
         let userDefaults = try #require(UserDefaults(suiteName: suiteName))

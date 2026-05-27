@@ -59,6 +59,24 @@ struct ESPProvisionURLResolver {
         return components.url
     }
 
+    func apiURL(currentURL: URL?, targetUrl: String?, baseUrl: String?, realm: String) -> URL? {
+        let urls = [
+            baseUrl.flatMap { makeURL(from: $0) },
+            currentURL,
+            targetUrl.flatMap { makeURL(from: $0) }
+        ]
+
+        for url in urls {
+            guard let url,
+                  let apiURL = apiURL(baseUrl: url.absoluteString, realm: realm) else {
+                continue
+            }
+            return apiURL
+        }
+
+        return nil
+    }
+
     private func realmFromURLs(currentURL: URL?, targetUrl: String?, baseUrl: String?) -> String? {
         let urls = [
             currentURL,
