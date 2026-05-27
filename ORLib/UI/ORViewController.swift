@@ -396,14 +396,7 @@ extension ORViewcontroller: WKScriptMessageHandler {
                             case Providers.espprovision:
                                 switch action {
                                 case Actions.providerInit:
-                                    let urlResolver = ESPProvisionURLResolver()
-                                    let realm = urlResolver.realm(currentURL: myWebView?.url, targetUrl: targetUrl, baseUrl: baseUrl)
-                                    if let baseUrl,
-                                       let apiUrl = urlResolver.apiURL(baseUrl: baseUrl, realm: realm) {
-                                        espProvisionProvider = ESPProvisionProvider(apiURL: apiUrl)
-                                    } else {
-                                        espProvisionProvider = ESPProvisionProvider()
-                                    }
+                                    espProvisionProvider = ESPProvisionProvider()
                                     espProvisionProvider?.sendDataCallback = { [weak self] data in
                                         self?.sendData(data: data)
                                     }
@@ -453,7 +446,20 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     espProvisionProvider?.exitProvisioning()
                                 case Actions.provisionDevice:
                                     if let userToken = postMessageDict["userToken"] as? String {
-                                        espProvisionProvider?.provisionDevice(userToken: userToken)
+                                        let urlResolver = ESPProvisionURLResolver()
+                                        let realm = urlResolver.realm(currentURL: myWebView?.url, targetUrl: targetUrl, baseUrl: baseUrl)
+                                        if let baseUrl,
+                                           let apiUrl = urlResolver.apiURL(baseUrl: baseUrl, realm: realm) {
+                                            espProvisionProvider?.provisionDevice(apiURL: apiUrl, userToken: userToken)
+                                        } else {
+                                            let payload: [String: Any] = [
+                                                DefaultsKey.providerKey: provider,
+                                                DefaultsKey.actionKey: action,
+                                                "errorCode": ESPProviderErrorCode.communicationError.rawValue,
+                                                "errorMessage": "Unable to determine API URL"
+                                            ]
+                                            self.sendData(data: payload)
+                                        }
                                     } else {
                                         let payload: [String: Any] = [
                                             DefaultsKey.providerKey: provider,

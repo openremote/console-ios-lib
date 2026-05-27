@@ -1166,7 +1166,8 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        let apiURL = URL(string: "https://tenant.example.com:8443/api/tenantA")!
+        provider.provisionDevice(apiURL: apiURL, userToken: "OAUTH_TOKEN")
 
         var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
@@ -1177,7 +1178,7 @@ struct ESPProvisionProviderTest {
         #expect(request.id == "1")
         if case let .openRemoteConfig(openRemoteConfig) = request.body {
             #expect(openRemoteConfig.realm == "master")
-            #expect(openRemoteConfig.mqttBrokerURL == "mqtts://localhost:8883")
+            #expect(openRemoteConfig.mqttBrokerURL == "mqtts://tenant.example.com:8883")
             #expect(openRemoteConfig.user == expectedDeviceInfo.deviceID.lowercased(with: Locale(identifier: "en")))
             #expect(openRemoteConfig.mqttPassword == deviceProvisionAPIMock.receivedPassword)
             #expect(openRemoteConfig.assetID == "AssetID")
@@ -1206,6 +1207,7 @@ struct ESPProvisionProviderTest {
         #expect(deviceProvisionAPIMock.receivedDeviceId == expectedDeviceInfo.deviceID)
         #expect(deviceProvisionAPIMock.receivedPassword != nil)
         #expect(deviceProvisionAPIMock.receivedToken == "OAUTH_TOKEN")
+        #expect(deviceProvisionAPIMock.receivedApiURL == apiURL)
     }
 
     @Test func provisionDeviceSuccessAfterMultipleStatusRequest() async throws {
@@ -1247,7 +1249,7 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        provider.provisionDevice(apiURL: URL(string: "http://localhost:8080/api/master")!, userToken: "OAUTH_TOKEN")
 
         var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
@@ -1331,7 +1333,7 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        provider.provisionDevice(apiURL: URL(string: "http://localhost:8080/api/master")!, userToken: "OAUTH_TOKEN")
 
         var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
@@ -1413,7 +1415,7 @@ struct ESPProvisionProviderTest {
             callbackRecorder.record(data)
         }
 
-        provider.provisionDevice(userToken: "OAUTH_TOKEN")
+        provider.provisionDevice(apiURL: URL(string: "http://localhost:8080/api/master")!, userToken: "OAUTH_TOKEN")
 
         var request = try await waitForNextPendingRequest(on: mockDevice, requestIndex: 0)
         #expect(request.id == "0")
@@ -1472,7 +1474,7 @@ struct ESPProvisionProviderTest {
         _ = await discoverDeviceAndStopScan(provider: provider)
 
         let receivedData = await waitForMessage(provider: provider, expectingAction: Actions.provisionDevice) {
-            provider.provisionDevice(userToken: "OAUTH_TOKEN")
+            provider.provisionDevice(apiURL: URL(string: "http://localhost:8080/api/master")!, userToken: "OAUTH_TOKEN")
         }
 
         #expect(receivedData["provider"] as? String == Providers.espprovision)

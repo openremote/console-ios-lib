@@ -43,13 +43,11 @@ class ESPProvisionProvider: NSObject {
 
     private var wifiProvisioner: WifiProvisioner?
 
-    private var apiURL = URL(string: "http://localhost:8080/api/master")!
-
     private var blePermissionsChecker: BLEPermissionsChecker?
 
     typealias DeviceProvisionFactory = () -> DeviceProvision
     private lazy var deviceProvisionFactory: DeviceProvisionFactory = {
-        DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: self.apiURL, timeSource: self.timeSource)
+        DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, timeSource: self.timeSource)
     }
 
     private var callbackChannel: CallbackChannel?
@@ -74,11 +72,6 @@ class ESPProvisionProvider: NSObject {
 
     public override convenience init() {
         self.init(timeSource: SystemTimeSource())
-    }
-
-    public convenience init(apiURL: URL = URL(string: "http://localhost:8080/api/master")!) {
-        self.init(timeSource: SystemTimeSource())
-        self.apiURL = apiURL
     }
 
     // MARK: Standard provider lifecycle
@@ -205,7 +198,7 @@ class ESPProvisionProvider: NSObject {
 
     // MARK: OR Configuration
 
-    public func provisionDevice(userToken: String) {
+    public func provisionDevice(apiURL: URL, userToken: String) {
         guard deviceConnection?.isConnected ?? false else {
             sendProvisionDeviceError(.notConnected, errorMessage: "No connection established to device")
             return
@@ -214,7 +207,7 @@ class ESPProvisionProvider: NSObject {
             do {
                 let deviceProvision = deviceProvisionFactory()
 
-                try await deviceProvision.provision(userToken: userToken)
+                try await deviceProvision.provision(apiURL: apiURL, userToken: userToken)
             } catch let error as ESPProviderError {
                 sendExitProvisioningError(error.errorCode, errorMessage: error.errorMessage)
             } catch {
@@ -238,7 +231,6 @@ extension ESPProvisionProvider {
     public convenience init(searchDeviceTimeout: TimeInterval = 120, searchDeviceMaxIterations: Int = 25,
                             searchWifiTimeout: TimeInterval = 120, searchWifiMaxIterations: Int = 25,
                             deviceProvisionAPI: DeviceProvisionAPI? = nil, backendConnectionTimeout: TimeInterval? = nil,
-                            apiURL: URL = URL(string: "http://localhost:8080/api/master")!,
                             timeSource: (any TimeSource)? = nil) {
         self.init(timeSource: timeSource ?? SystemTimeSource())
         self.searchDeviceTimeout = searchDeviceTimeout
@@ -250,7 +242,7 @@ extension ESPProvisionProvider {
         self.searchWifiMaxIterations = searchWifiMaxIterations
 
         self.deviceProvisionFactory = {
-            let deviceProvision = DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, apiURL: apiURL, timeSource: self.timeSource)
+            let deviceProvision = DeviceProvision(deviceConnection: self.deviceConnection, callbackChannel: self.callbackChannel, timeSource: self.timeSource)
             if let deviceProvisionAPI {
                 deviceProvision.deviceProvisionAPI = deviceProvisionAPI
             }
