@@ -63,7 +63,11 @@ class DeviceProvision {
 
             let password = try generatePassword()
 
-            let result = try await deviceProvisionAPI.provision(apiURL: apiURL, modelName: deviceInfo.modelName, deviceId: deviceInfo.deviceId, password: password, token: userToken)
+            let result = try await deviceProvisionAPI.provision(apiURL: apiURL,
+                                                                modelName: deviceInfo.modelName,
+                                                                deviceId: deviceInfo.deviceId,
+                                                                password: password,
+                                                                token: userToken)
             let userName = deviceInfo.deviceId.lowercased(with: Locale(identifier: "en"))
 
             try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL(apiURL: apiURL),
