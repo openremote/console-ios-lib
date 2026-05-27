@@ -161,6 +161,10 @@ struct ORConfigChannelTest {
 
         let sentConfig = try Self.openRemoteConfig(from: deviceMock.receivedData)
         #expect(sentConfig.properties.isEmpty)
+        #expect(sentConfig.mqttBrokerURL == "mqtts://")
+        #expect(sentConfig.user == "test")
+        #expect(sentConfig.mqttPassword == "pwd")
+        #expect(sentConfig.assetID == "123")
     }
 
     @Test func validSendOpenRemoteConfigFailure() async throws {
