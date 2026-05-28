@@ -22,7 +22,7 @@ import os
 import RandomPasswordGenerator
 
 protocol DeviceProvisionAPI {
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult
+    func provision(apiURL: URL, modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult
 }
 
 struct ProvisionResult {
@@ -40,20 +40,18 @@ class DeviceProvision {
     var callbackChannel: CallbackChannel?
 
     private let timeSource: any TimeSource
-    var apiURL: URL
     var deviceProvisionAPI: DeviceProvisionAPI
 
     var backendConnectionTimeout: TimeInterval = 60
 
-    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, apiURL: URL, timeSource: any TimeSource = SystemTimeSource()) {
+    init (deviceConnection: DeviceConnection?, callbackChannel: CallbackChannel?, timeSource: any TimeSource = SystemTimeSource()) {
         self.deviceConnection = deviceConnection
         self.callbackChannel = callbackChannel
         self.timeSource = timeSource
-        self.apiURL = apiURL
-        self.deviceProvisionAPI = DeviceProvisionAPIREST(apiURL: apiURL)
+        self.deviceProvisionAPI = DeviceProvisionAPIREST()
     }
 
-    public func provision(userToken: String) async {
+    public func provision(apiURL: URL, realm: String, userToken: String) async {
         guard deviceConnection?.isConnected ?? false else {
             sendProvisionDeviceStatus(connected: false, error: .notConnected, errorMessage: "No connection established to device")
             return
@@ -65,12 +63,17 @@ class DeviceProvision {
 
             let password = try generatePassword()
 
-            let result = try await deviceProvisionAPI.provision(modelName: deviceInfo.modelName, deviceId: deviceInfo.deviceId, password: password, token: userToken)
+            let result = try await deviceProvisionAPI.provision(apiURL: apiURL,
+                                                                modelName: deviceInfo.modelName,
+                                                                deviceId: deviceInfo.deviceId,
+                                                                password: password,
+                                                                token: userToken)
             let userName = deviceInfo.deviceId.lowercased(with: Locale(identifier: "en"))
 
-            try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL,
+            try await deviceConnection!.sendOpenRemoteConfig(mqttBrokerUrl: mqttURL(apiURL: apiURL),
                                                              mqttUser: userName,
                                                              mqttPassword: password,
+                                                             realm: realm,
                                                              assetId: result.assetId,
                                                              properties: result.properties)
 
@@ -132,7 +135,7 @@ class DeviceProvision {
         return try generator.generate()
     }
 
-    private var mqttURL: String {
+    private func mqttURL(apiURL: URL) -> String {
         // TODO: is this OK or do we want to get the mqtt url from the server
 
         return "mqtts://\(apiURL.host ?? "localhost"):8883"

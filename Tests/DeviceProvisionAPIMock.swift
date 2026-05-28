@@ -29,10 +29,12 @@ class DeviceProvisionAPIMock: DeviceProvisionAPI {
     var receivedDeviceId: String?
     var receivedPassword: String?
     var receivedToken: String?
+    var receivedApiURL: URL?
     var provisionCallCount = 0
 
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
+    func provision(apiURL: URL, modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
         provisionCallCount += 1
+        receivedApiURL = apiURL
         receivedModelName = modelName
         receivedDeviceId = deviceId
         receivedPassword = password

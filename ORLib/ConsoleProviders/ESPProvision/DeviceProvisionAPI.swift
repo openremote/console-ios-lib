@@ -22,13 +22,7 @@ import os
 
 struct DeviceProvisionAPIREST: DeviceProvisionAPI {
 
-    init(apiURL: URL) {
-        self.apiURL = apiURL
-    }
-
-    private var apiURL: URL
-
-    func provision(modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
+    func provision(apiURL: URL, modelName: String, deviceId: String, password: String, token: String) async throws -> ProvisionResult {
         /*
          curl -v http://localhost:8080/api/master/rest/battery -d'{
          "model": 0,
