@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Install tooling
@@ -40,7 +40,7 @@ jobs:
             -o xccov-to-sonarqube-generic.sh
 
       - name: Swift Package Manager cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .build
           key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload SwiftLint SARIF
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # 4.37.3
         with:
           sarif_file: swiftlint.sarif
           category: swiftlint
@@ -76,7 +76,7 @@ jobs:
           -resultBundlePath ORLib.xcresult
 
       - name: Upload XCResult bundle
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
         with:
           name: ORLib-xcresult
@@ -94,13 +94,13 @@ jobs:
           bash xccov-to-sonarqube-generic.sh ORLib.xcresult/ > Coverage.xml
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@299e4b793aaa83bf2aba7c9c14bedbb485688ec4 # v7.1.0
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         if: ${{ !cancelled() }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Publish Test Report with Insights
-        uses: ctrf-io/github-test-reporter@0f299074936c32ccaab5be5230511f6b2b9080aa # v1.0.28
+        uses: ctrf-io/github-test-reporter@e500b992f936420eb633c91644cf10d4d71df700 # v1.1.0
         if: ${{ !cancelled() }}
         with:
           report-path: 'junit.xml'
