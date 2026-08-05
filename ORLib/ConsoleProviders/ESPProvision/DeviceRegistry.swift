@@ -28,10 +28,10 @@ protocol ORESPProvisionManager {
 }
 
 class EspressifProvisionManager: ORESPProvisionManager {
-    var provisionManager: ESPProvisionManager = ESPProvisionManager.shared
-    var searchedAtLeastOnce = false
+    private let provisionManager: ESPProvisionManager
+    private var searchedAtLeastOnce = false
 
-    init(provisionManager: ESPProvisionManager) {
+    init(provisionManager: ESPProvisionManager = ESPProvisionManager.shared) {
         self.provisionManager = provisionManager
     }
 
