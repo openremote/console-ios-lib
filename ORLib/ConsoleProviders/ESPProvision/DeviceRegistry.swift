@@ -27,8 +27,13 @@ protocol ORESPProvisionManager {
     func stopESPDevicesSearch()
 }
 
-struct EspressifProvisionManager: ORESPProvisionManager {
-    var provisionManager: ESPProvisionManager = ESPProvisionManager.shared
+class EspressifProvisionManager: ORESPProvisionManager {
+    private let provisionManager: ESPProvisionManager
+    private var searchedAtLeastOnce = false
+
+    init(provisionManager: ESPProvisionManager = ESPProvisionManager.shared) {
+        self.provisionManager = provisionManager
+    }
 
     public func searchESPDevices(devicePrefix: String, transport: ESPTransport, security: ESPSecurity = .secure) async throws -> [ORESPDevice] {
         return try await withCheckedThrowingContinuation { continuation in
@@ -37,6 +42,7 @@ struct EspressifProvisionManager: ORESPProvisionManager {
             // even after the search has already completed with a list of device
             var alreadyResumed = false
 
+            searchedAtLeastOnce = true
             provisionManager.searchESPDevices(devicePrefix: devicePrefix, transport: transport, security: security) { deviceList, error in
                 if let error {
                     if !alreadyResumed {
@@ -52,6 +58,8 @@ struct EspressifProvisionManager: ORESPProvisionManager {
     }
 
     public func stopESPDevicesSearch() {
+        // ESPProvisionManager.stopESPDevicesSearch crashes by force unwrapping nil if it did not perform a search before
+        guard searchedAtLeastOnce else { return }
         provisionManager.stopESPDevicesSearch()
     }
 }
