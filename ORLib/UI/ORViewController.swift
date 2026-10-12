@@ -252,8 +252,9 @@ extension ORViewcontroller: WKScriptMessageHandler {
                                     })
                                 case Actions.providerEnable:
                                     let consoleId = postMessageDict[GeofenceProvider.consoleIdKey] as? String
-                                    pushProvider?.enable(consoleId: consoleId, callback: { enableData in
-                                        self.sendData(data: enableData)
+                                    // The reply can wait seconds for the FCM token, don't keep the view controller alive for it
+                                    pushProvider?.enable(consoleId: consoleId, callback: { [weak self] enableData in
+                                        self?.sendData(data: enableData)
                                     })
 
                                 case Actions.providerDisable:
