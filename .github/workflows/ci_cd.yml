@@ -1,3 +1,4 @@
+
 name: CI/CD
 
 on:
@@ -32,9 +33,27 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Check SonarQube availability
+        id: sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [[ -n "$SONAR_TOKEN" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "SonarQube analysis enabled"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube analysis disabled (SONAR_TOKEN not set)"
+          fi
+
       - name: Install tooling
         run: |
           brew install xcresultparser swiftlint
+
+      - name: Download SonarQube coverage converter
+        if: ${{ steps.sonar.outputs.enabled == 'true' }}
+        run: |
           curl --fail --location --silent --show-error \
             https://raw.githubusercontent.com/SonarSource/sonar-scanning-examples/de677435078ca8873be775e7f718d8dd0669c03d/swift-coverage/swift-coverage-example/xccov-to-sonarqube-generic.sh \
             -o xccov-to-sonarqube-generic.sh
@@ -61,7 +80,7 @@ jobs:
           category: swiftlint
 
       - name: Generate SwiftLint JSON Report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.sonar.outputs.enabled == 'true' }}
         run: |
           swiftlint lint --no-cache --quiet --config .swiftlint.yml --reporter json ORLib > swiftlint.json || true
 
@@ -89,13 +108,13 @@ jobs:
         if: ${{ !cancelled() }}
 
       - name: Convert test coverage to SonarQube format
-        if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
+        if: ${{ always() && !cancelled() && steps.sonar.outputs.enabled == 'true' && hashFiles('ORLib.xcresult/**') != '' }}
         run: |
           bash xccov-to-sonarqube-generic.sh ORLib.xcresult/ > Coverage.xml
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.sonar.outputs.enabled == 'true' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -128,6 +147,7 @@ jobs:
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: ${{ !cancelled() }}
         with:
-          name: ORLib Tests 
+          name: ORLib Tests
           path: junit.xml
           reporter: jest-junit
+
