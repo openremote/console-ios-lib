@@ -24,9 +24,8 @@ import Testing
 struct ESPProvisionURLResolverTest {
 
     @Test func urlRealmWinsOverStoredRealm() throws {
-        let (suiteName, userDefaults) = try makeUserDefaults()
+        let userDefaults = try #require(TemporaryUserDefaults())
         userDefaults.set("master", forKey: DefaultsKey.realmKey)
-        defer { userDefaults.removePersistentDomain(forName: suiteName) }
 
         let resolver = ESPProvisionURLResolver(userDefaults: userDefaults)
 
@@ -36,9 +35,8 @@ struct ESPProvisionURLResolverTest {
     }
 
     @Test func currentURLWinsOverTargetUrlAndBaseUrl() throws {
-        let (suiteName, userDefaults) = try makeUserDefaults()
+        let userDefaults = try #require(TemporaryUserDefaults())
         userDefaults.set("stored", forKey: DefaultsKey.realmKey)
-        defer { userDefaults.removePersistentDomain(forName: suiteName) }
 
         let resolver = ESPProvisionURLResolver(userDefaults: userDefaults)
 
@@ -48,9 +46,8 @@ struct ESPProvisionURLResolverTest {
     }
 
     @Test func blankUrlRealmFallsBackToStoredRealm() throws {
-        let (suiteName, userDefaults) = try makeUserDefaults()
+        let userDefaults = try #require(TemporaryUserDefaults())
         userDefaults.set("stored", forKey: DefaultsKey.realmKey)
-        defer { userDefaults.removePersistentDomain(forName: suiteName) }
 
         let resolver = ESPProvisionURLResolver(userDefaults: userDefaults)
 
@@ -102,12 +99,5 @@ struct ESPProvisionURLResolverTest {
                                                   realm: "tenantA"))
 
         #expect(apiURL.absoluteString == "http://localhost:8080/api/tenantA")
-    }
-
-    private func makeUserDefaults() throws -> (suiteName: String, userDefaults: UserDefaults) {
-        let suiteName = "ESPProvisionURLResolverTest.\(UUID().uuidString)"
-        let userDefaults = try #require(UserDefaults(suiteName: suiteName))
-        userDefaults.removePersistentDomain(forName: suiteName)
-        return (suiteName, userDefaults)
     }
 }

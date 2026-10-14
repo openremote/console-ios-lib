@@ -22,18 +22,44 @@ import UserNotifications
 
 public class PushNotificationProvider: NSObject {
 
-    let userdefaults = UserDefaults(suiteName: DefaultsKey.groupEntitlement)
+    typealias AuthorizationStatus = (@escaping (UNAuthorizationStatus) -> Void) -> Void
+    typealias RequestAuthorization = (@escaping (Bool) -> Void) -> Void
+    typealias Register = () -> Void
+
+    let userdefaults: UserDefaults?
+    let center: NotificationCenter
+    private let authorizationStatus: AuthorizationStatus
+    private let requestAuthorization: RequestAuthorization
+    private let register: Register
     let version = "fcm"
     public var consoleId: String?
     public static let pushDisabledKey = "pushDisabled"
+    public static let tokenKey = "token"
 
-    public override init() {
+    /// How long to wait for the FCM token before replying to an enable request,
+    /// the web console stops waiting for a provider reply after 5 seconds (`sendProviderMessage` in openremote `console.ts`)
+    static let tokenWaitTimeout: TimeInterval = 4.5
+
+    public override convenience init() {
+        self.init(center: .default, userdefaults: UserDefaults(suiteName: DefaultsKey.groupEntitlement))
+    }
+
+    init(center: NotificationCenter,
+         userdefaults: UserDefaults?,
+         authorizationStatus: @escaping AuthorizationStatus = PushNotificationProvider.currentAuthorizationStatus,
+         requestAuthorization: @escaping RequestAuthorization = PushNotificationProvider.requestUserAuthorization,
+         register: @escaping Register = PushNotificationProvider.registerForRemoteNotifications) {
+        self.center = center
+        self.userdefaults = userdefaults
+        self.authorizationStatus = authorizationStatus
+        self.requestAuthorization = requestAuthorization
+        self.register = register
         super.init()
     }
 
     public func initialize(callback: @escaping ([String: Any?]) -> Void) {
-        UNUserNotificationCenter.current().getNotificationSettings { (settings) in
-            switch settings.authorizationStatus {
+        authorizationStatus { status in
+            switch status {
 
             case .authorized, .provisional:
                 callback( [
@@ -74,6 +100,8 @@ public class PushNotificationProvider: NSObject {
         }
     }
 
+    /// Replies once the FCM token is available (or the wait times out), so the console registration includes it.
+    /// On first launch the token is only delivered by Firebase after registering for remote notifications.
     public func enable(consoleId: String?, callback: @escaping ([String: Any]) -> Void) {
         self.consoleId = consoleId
         if self.consoleId != nil {
@@ -81,49 +109,30 @@ public class PushNotificationProvider: NSObject {
             userdefaults?.removeObject(forKey: PushNotificationProvider.pushDisabledKey)
             userdefaults?.synchronize()
         }
-        UNUserNotificationCenter.current().getNotificationSettings { (settings) in
+        let deadline = Date().addingTimeInterval(PushNotificationProvider.tokenWaitTimeout)
+        authorizationStatus { status in
 
-            switch settings.authorizationStatus {
+            switch status {
             case .authorized, .provisional:
-                DispatchQueue.main.async {
-                    UIApplication.shared.registerForRemoteNotifications()
+                self.register()
+                self.waitForToken(until: deadline) { token in
+                    callback(self.enableResponse(hasPermission: true, token: token))
                 }
-                callback([
-                    DefaultsKey.actionKey: Actions.providerEnable,
-                    DefaultsKey.providerKey: Providers.push,
-                    DefaultsKey.hasPermissionKey: true,
-                    DefaultsKey.successKey: true,
-                    DefaultsKey.dataKey: ["token": self.userdefaults?.string(forKey: DefaultsKey.fcmTokenKey)]
-                    ])
 
             case .denied:
-                callback([
-                    DefaultsKey.actionKey: Actions.providerEnable,
-                    DefaultsKey.providerKey: Providers.push,
-                    DefaultsKey.hasPermissionKey: false,
-                    DefaultsKey.successKey: true,
-                    DefaultsKey.dataKey: ["token": self.userdefaults?.string(forKey: DefaultsKey.fcmTokenKey)]
-                    ])
+                callback(self.enableResponse(hasPermission: false, token: self.cachedToken))
 
             default:
-                UNUserNotificationCenter.current().requestAuthorization(
-                    options: [.alert, .badge, .sound],
-                    completionHandler: {granted, _ in
-                        if granted {
-                            DispatchQueue.main.async {
-                                UIApplication.shared.registerForRemoteNotifications()
-                            }
-                        }
-
-                        callback([
-                            DefaultsKey.actionKey: Actions.providerEnable,
-                            DefaultsKey.providerKey: Providers.push,
-                            DefaultsKey.hasPermissionKey: granted,
-                            DefaultsKey.successKey: true,
-                            DefaultsKey.dataKey: ["token": self.userdefaults?.string(forKey: DefaultsKey.fcmTokenKey)]
-                            ])
-                })
-
+                // The token does not depend on the user's answer, so don't make the reply wait for the prompt
+                // (which could exceed the web console timeout). Same as the Android console.
+                var granted: Bool?
+                self.register()
+                self.requestAuthorization { isGranted in
+                    DispatchQueue.main.async { granted = isGranted }
+                }
+                self.waitForToken(until: deadline) { token in
+                    callback(self.enableResponse(hasPermission: granted ?? true, token: token))
+                }
             }
         }
     }
@@ -134,6 +143,72 @@ public class PushNotificationProvider: NSObject {
         return [
             DefaultsKey.actionKey: Actions.providerDisable,
             DefaultsKey.providerKey: Providers.push
+        ]
+    }
+
+    /// Completes on the main thread with the cached token, or the token posted through `Notifications.pushTokenUpdated`,
+    /// or whatever is cached once the deadline is reached
+    func waitForToken(until deadline: Date, completion: @escaping (String?) -> Void) {
+        DispatchQueue.main.async {
+            if let token = self.cachedToken {
+                completion(token)
+                return
+            }
+
+            var observer: NSObjectProtocol?
+            var finished = false
+            let finish: (String?) -> Void = { token in
+                guard !finished else { return }
+                finished = true
+                if let observer = observer {
+                    self.center.removeObserver(observer)
+                }
+                completion(token)
+            }
+
+            observer = self.center.addObserver(forName: Notifications.pushTokenUpdated, object: nil, queue: .main) { notification in
+                finish(notification.userInfo?[PushNotificationProvider.tokenKey] as? String ?? self.cachedToken)
+            }
+            // The token might have been stored between the first check and adding the observer
+            if let token = self.cachedToken {
+                finish(token)
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(0, deadline.timeIntervalSinceNow)) {
+                finish(self.cachedToken)
+            }
+        }
+    }
+
+    private var cachedToken: String? {
+        userdefaults?.string(forKey: DefaultsKey.fcmTokenKey)
+    }
+
+    static func currentAuthorizationStatus(_ completion: @escaping (UNAuthorizationStatus) -> Void) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            completion(settings.authorizationStatus)
+        }
+    }
+
+    static func requestUserAuthorization(_ completion: @escaping (Bool) -> Void) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            completion(granted)
+        }
+    }
+
+    static func registerForRemoteNotifications() {
+        DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+    }
+
+    private func enableResponse(hasPermission: Bool, token: String?) -> [String: Any] {
+        return [
+            DefaultsKey.actionKey: Actions.providerEnable,
+            DefaultsKey.providerKey: Providers.push,
+            DefaultsKey.hasPermissionKey: hasPermission,
+            DefaultsKey.successKey: true,
+            DefaultsKey.dataKey: [PushNotificationProvider.tokenKey: token]
         ]
     }
 }

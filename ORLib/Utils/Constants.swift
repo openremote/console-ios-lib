@@ -93,6 +93,8 @@ public enum Notifications {
     public static let fullScreenShown = Notification.Name("fullScreenShown")
     public static let fullScreenHidden = Notification.Name("fullScreenHidden")
     public static let idleTimerFired = Notification.Name("idleTimerFired")
+    /// Posted when a new FCM token is available, the token is in userInfo under `PushNotificationProvider.tokenKey`
+    public static let pushTokenUpdated = Notification.Name("pushTokenUpdated")
 }
 
 public enum ActionType {

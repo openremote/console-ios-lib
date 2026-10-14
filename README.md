@@ -29,6 +29,41 @@ import ORLib
 // Your code using ORLib
 ```
 
+### Push notifications
+
+ORLib does not depend on Firebase, the app sets it up. On every launch path, including launches from a notification, call `FirebaseApp.configure()` and set `Messaging.messaging().delegate` before the console enables push. Firebase only issues the FCM token once it has the APNs token. With method swizzling disabled (`FirebaseAppDelegateProxyEnabled` set to `NO`), forward it yourself:
+
+```swift
+func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    Messaging.messaging().apnsToken = deviceToken
+}
+```
+
+Then forward the notification and Firebase messaging callbacks from your `AppDelegate` to `ORNotificationHandler`:
+
+```swift
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler(ORNotificationHandler.shared.willPresent(notification))
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        ORNotificationHandler.shared.didReceive(response)
+        completionHandler()
+    }
+}
+
+extension AppDelegate: MessagingDelegate {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        ORNotificationHandler.shared.didReceiveRegistrationToken(fcmToken)
+    }
+}
+```
+
+If push is enabled before Firebase delivers the token (first launch), the push provider waits for it before replying, so the token is included in the console registration. The wait is capped at 4.5 s, just under the web console's 5 s provider timeout. A token that arrives later, or a rotated token, reaches the backend the next time the console enables push.
+
 ## License
 
 ORLib is available under the AGPL-3.0 license. See the LICENSE.txt file for more info.

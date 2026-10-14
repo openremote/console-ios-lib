@@ -85,6 +85,10 @@
 				91F2166C2D887C53008F9CA7 /* ORConfigChannelTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216672D887C53008F9CA7 /* ORConfigChannelTest.swift */; };
 				91F2166D2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */; };
 				91F216722D887C53008F9CA7 /* TestTimeSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F216732D887C53008F9CA7 /* TestTimeSource.swift */; };
+		AA0E1F022F8C000000A1B2C3 /* ORNotificationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0E1F012F8C000000A1B2C3 /* ORNotificationHandler.swift */; };
+		AA0E1F042F8C000000A1B2C3 /* PushNotificationProviderTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0E1F032F8C000000A1B2C3 /* PushNotificationProviderTest.swift */; };
+		AA0E1F062F8C000000A1B2C3 /* ORNotificationHandlerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0E1F052F8C000000A1B2C3 /* ORNotificationHandlerTest.swift */; };
+		AA0E1F082F8C000000A1B2C3 /* TemporaryUserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0E1F072F8C000000A1B2C3 /* TemporaryUserDefaults.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -192,6 +196,10 @@
 				91F216682D887C53008F9CA7 /* ORESPDeviceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPDeviceMock.swift; sourceTree = "<group>"; };
 				91F2166E2D887C53008F9CA7 /* ORESPProvisionManagerMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORESPProvisionManagerMock.swift; sourceTree = "<group>"; };
 				91F216732D887C53008F9CA7 /* TestTimeSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestTimeSource.swift; sourceTree = "<group>"; };
+		AA0E1F012F8C000000A1B2C3 /* ORNotificationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORNotificationHandler.swift; sourceTree = "<group>"; };
+		AA0E1F032F8C000000A1B2C3 /* PushNotificationProviderTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationProviderTest.swift; sourceTree = "<group>"; };
+		AA0E1F052F8C000000A1B2C3 /* ORNotificationHandlerTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ORNotificationHandlerTest.swift; sourceTree = "<group>"; };
+		AA0E1F072F8C000000A1B2C3 /* TemporaryUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryUserDefaults.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -261,6 +269,7 @@
 				4CF5D05227143F1F00D705BE /* StorageProvider.swift */,
 				4CF5D05327143F1F00D705BE /* GeofenceProvider.swift */,
 				4CF5D05427143F1F00D705BE /* PushNotificationProvider.swift */,
+				AA0E1F012F8C000000A1B2C3 /* ORNotificationHandler.swift */,
 				4C0E4A11274BE411008CB352 /* QrScannerProvider.swift */,
 				4C649E6729C251A300FFBEA4 /* BleProvider.swift */,
 			);
@@ -364,6 +373,9 @@
 						9154E29F2D9EB0D50055E565 /* StringUtilsTest.swift */,
 						9154E2A12D9EB3220055E565 /* URLTest.swift */,
 						91E8A0022F07700000E5BF01 /* ESPProvisionURLResolverTest.swift */,
+						AA0E1F052F8C000000A1B2C3 /* ORNotificationHandlerTest.swift */,
+						AA0E1F032F8C000000A1B2C3 /* PushNotificationProviderTest.swift */,
+						AA0E1F072F8C000000A1B2C3 /* TemporaryUserDefaults.swift */,
 				);
 			path = Tests;
 			sourceTree = "<group>";
@@ -544,6 +556,7 @@
 				4CBDF2BD2AE2869D00C7D94C /* StorageProvider.swift in Sources */,
 				4CBDF2BE2AE2869D00C7D94C /* GeofenceProvider.swift in Sources */,
 				4CBDF2BF2AE2869D00C7D94C /* PushNotificationProvider.swift in Sources */,
+				AA0E1F022F8C000000A1B2C3 /* ORNotificationHandler.swift in Sources */,
 				4CBDF2C02AE2869D00C7D94C /* QrScannerProvider.swift in Sources */,
 				4CBDF2C12AE2869D00C7D94C /* BleProvider.swift in Sources */,
 				4CBDF2C22AE2869D00C7D94C /* ORLinkConfig.swift in Sources */,
@@ -602,6 +615,9 @@
 						91A9A90128BF6EA000DF8928 /* FileApiManager.swift in Sources */,
 				9154E2A22D9EB3220055E565 /* URLTest.swift in Sources */,
 				91E8A0032F07700000E5BF01 /* ESPProvisionURLResolverTest.swift in Sources */,
+				AA0E1F062F8C000000A1B2C3 /* ORNotificationHandlerTest.swift in Sources */,
+				AA0E1F042F8C000000A1B2C3 /* PushNotificationProviderTest.swift in Sources */,
+				AA0E1F082F8C000000A1B2C3 /* TemporaryUserDefaults.swift in Sources */,
 				9154E2A02D9EB0D50055E565 /* StringUtilsTest.swift in Sources */,
 				91A9A8FB28BF6A4900DF8928 /* ConfigManagerTest.swift in Sources */,
 				91AA79F328D628E9005B9913 /* Fixture.swift in Sources */,
