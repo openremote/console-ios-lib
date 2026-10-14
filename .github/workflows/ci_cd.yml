@@ -1,3 +1,4 @@
+
 name: CI/CD
 
 on:
@@ -32,11 +33,29 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Check SonarQube availability
+        id: sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [[ -n "$SONAR_TOKEN" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "SonarQube analysis enabled"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube analysis disabled (SONAR_TOKEN not set)"
+          fi
+
       - name: Install tooling
         run: |
           brew install xcresultparser swiftlint
+
+      - name: Download SonarQube coverage converter
+        if: ${{ steps.sonar.outputs.enabled == 'true' }}
+        run: |
           curl --fail --location --silent --show-error \
-            https://raw.githubusercontent.com/SonarSource/sonar-scanning-examples/de677435078ca8873be775e7f718d8dd0669c03d/swift-coverage/swift-coverage-example/xccov-to-sonarqube-generic.sh \
+            https://raw.githubusercontent.com/SonarSource/sonar-scanning-examples/7e7cba7dedc50d72a7f5715bce8c6517f5d324b4/swift-coverage/swift-coverage-example/xccov-to-sonarqube-generic.sh \
             -o xccov-to-sonarqube-generic.sh
 
       - name: Swift Package Manager cache
@@ -55,13 +74,13 @@ jobs:
 
       - name: Upload SwiftLint SARIF
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # 4.37.3
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: swiftlint.sarif
           category: swiftlint
 
       - name: Generate SwiftLint JSON Report
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.sonar.outputs.enabled == 'true' }}
         run: |
           swiftlint lint --no-cache --quiet --config .swiftlint.yml --reporter json ORLib > swiftlint.json || true
 
@@ -76,7 +95,7 @@ jobs:
           -resultBundlePath ORLib.xcresult
 
       - name: Upload XCResult bundle
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
         with:
           name: ORLib-xcresult
@@ -89,18 +108,18 @@ jobs:
         if: ${{ !cancelled() }}
 
       - name: Convert test coverage to SonarQube format
-        if: ${{ always() && !cancelled() && hashFiles('ORLib.xcresult/**') != '' }}
+        if: ${{ always() && !cancelled() && steps.sonar.outputs.enabled == 'true' && hashFiles('ORLib.xcresult/**') != '' }}
         run: |
           bash xccov-to-sonarqube-generic.sh ORLib.xcresult/ > Coverage.xml
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
-        if: ${{ !cancelled() }}
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        if: ${{ !cancelled() && steps.sonar.outputs.enabled == 'true' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Publish Test Report with Insights
-        uses: ctrf-io/github-test-reporter@e500b992f936420eb633c91644cf10d4d71df700 # v1.1.0
+        uses: ctrf-io/github-test-reporter@dbb08957b5b2af918b39136ab2c5532002c7649b # v1.3.2
         if: ${{ !cancelled() }}
         with:
           report-path: 'junit.xml'
@@ -128,6 +147,7 @@ jobs:
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         if: ${{ !cancelled() }}
         with:
-          name: ORLib Tests 
+          name: ORLib Tests
           path: junit.xml
           reporter: jest-junit
+
